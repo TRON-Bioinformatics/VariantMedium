@@ -52,7 +52,7 @@ reference genome and S07604624 SureSelect Human All Exon V6+UTR from UCSC if you
 **Please make sure the index for the BAM file exists with the ".bai" extension under the same
 directory, e.g. for bams/tumor.bam you have bams/tumor.bai. Also please make sure that the tumor and
 normal bam files do not have the same file name, even if they are under different directories. (
-Linking with a neww file name is ok)**
+Linking with a new file name is ok)**
 
 Finally, run the VariantMedium pipeline by
 
@@ -69,7 +69,7 @@ by the neural network score.
 ## Errors running the pipeline
 
 We listed the solutions to common errors we encountered when running this pipeline under
-troubleshooting.md document in this repository
+[troubleshooting.md](https://github.com/TRON-Bioinformatics/VariantMedium/blob/main/troubleshooting.md) document in this repository
 
 ## Training data
 
