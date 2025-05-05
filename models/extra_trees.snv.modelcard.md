@@ -85,7 +85,7 @@ scikit-learn GridSearchCV. Hyperparameters are given under the relevant section.
 
 #### Preprocessing
 
-Given a BAM file:
+Given matched tumor-normal BAM files:
 1. BAM preprocessing (https://github.com/TRON-Bioinformatics/tronflow-bam-preprocessing)
 2. Candidate variant calling (https://github.com/TRON-Bioinformatics/tronflow-strelka2)
 3. Variant normalization and feature extraction (https://github.com/TRON-Bioinformatics/tronflow-vcf-postprocessing)
@@ -138,15 +138,3 @@ Sensitivity and precision, with sensitivity as the primary metric since the aim 
 #### Summary
 
 We observed high recall in both cross-validation and validation sets. Test set recall dropped slightly compared to control (0.8563 -> 0.8294), but precision increased.
-
----
-
-## Environmental Impact
-
-Carbon emissions can be estimated using the [Machine Learning Impact calculator](https://mlco2.github.io/impact#compute) presented in [Lacoste et al. (2019)](https://arxiv.org/abs/1910.09700).
-
-- **Hardware Type:** DGX2  
-- **Hours used:** 2  
-- **Compute Region:** Germany  
-
----
