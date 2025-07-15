@@ -1,4 +1,4 @@
-# VariantMedium - Somatic variant calling from matched tumor-normal paired short-read sequencing data using 3D DenseNets
+## VariantMedium - Somatic variant calling from matched tumor-normal paired short-read sequencing data using 3D DenseNets
 
 VariantMedium is a deep learning-based somatic variant caller for matched tumor-normal short-read sequencing data. It integrates machine learning–based filtering and 3D convolutional neural networks to classify candidate sites as somatic, germline, or non-variant, with high sensitivity and robustness across diverse genomic contexts and sample types.
 
