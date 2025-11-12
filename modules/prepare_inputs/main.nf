@@ -1,4 +1,4 @@
-process VARIANTMEDIUM_PREPARE_INPUTS {
+process PREPARE_INPUTS {
     tag "${sample_name}"
     label 'process_medium'
 

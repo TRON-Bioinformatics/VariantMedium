@@ -122,3 +122,7 @@ work
 report-*
 trace-*
 
+# variantmedium
+*.pt
+*.joblib
+ref/

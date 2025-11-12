@@ -1,4 +1,4 @@
-process VARIANTMEDIUM_FILTER_CANDIDATES {
+process FILTER_CANDIDATES {
     tag "${sample_name}"
     label 'process_medium'
 
