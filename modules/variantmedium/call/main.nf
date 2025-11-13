@@ -1,4 +1,4 @@
-process VARIANTMEDIUM_RUN {
+process CALL_VARIANTS {
     tag "${sample_name}"
     label 'process_medium'
 

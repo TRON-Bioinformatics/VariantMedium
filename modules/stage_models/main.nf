@@ -3,14 +3,17 @@ process STAGE_MODELS {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    container "community.wave.seqera.io/library/pandas:2.3.3--5a902bf824a79745c"
+    container "community.wave.seqera.io/library/requests:2.32.5--734a8dc164d0c716"
 
     input:
     path(models_outdir)
 
     output:
-    path("${models_outdir}/"), emit: models
-    path("versions.yml"     ), emit: versions
+    path("${models_outdir}/3ddensenet_indel.pt")     , emit: ddensenet_indel
+    path("${models_outdir}/3ddensenet_snv.pt")       , emit: ddensenet_snv
+    path("${models_outdir}/extra_trees.indel.joblib"), emit: extra_trees_indel
+    path("${models_outdir}/extra_trees.snv.joblib")  , emit: extra_trees_snv
+    path("versions.yml")                             , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
