@@ -1,0 +1,4 @@
+sample_name,replicate_pair_identifier,tumor_bam_path,normal_bam_path
+WES_LL_1,1,/scratch/info/data/seq/public/seqqc/WES/bams/WES_LL_T_1.bwa.dedup.bam,/scratch/info/data/seq/public/seqqc/WES/bams/WES_LL_N_1.bwa.dedup.bam
+WES_EA_1,1,/scratch/info/data/seq/public/seqqc/WES/bams/WES_EA_T_1.bwa.dedup.bam,/scratch/info/data/seq/public/seqqc/WES/bams/WES_EA_N_1.bwa.dedup.bam
+WES_FD_1,1,/scratch/info/data/seq/public/seqqc/WES/bams/WES_FD_T_1.bwa.dedup.bam,/scratch/info/data/seq/public/seqqc/WES/bams/WES_FD_N_1.bwa.dedup.bam
