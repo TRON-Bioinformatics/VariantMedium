@@ -3,105 +3,153 @@
 
 import argparse
 import os
+from pathlib import Path
 import pandas as pd
 
 
-def make_input(inpath, folder, out_folder_vm, skip_preprocessing):
-    prepath = os.path.join(folder, 'preproc.tsv')
-    bampath = os.path.join(folder, 'bams.tsv')
-    vcfpath = os.path.join(folder, 'vcfs.tsv')
-    paipath = os.path.join(folder, 'pairs_wo_reps.tsv')
-    b2tpath = os.path.join(folder, 'pairs_w_cands.tsv')
-    etrpath = os.path.join(folder, 'samples_w_cands.tsv')
+# -------------------------------------------------------
+# Utility: normalize all paths (absolute, resolved)
+# -------------------------------------------------------
+def resolve_path(p):
+    return Path(p).expanduser().resolve()
 
-    df = pd.read_csv(inpath, sep='\t', header=None)
 
-    prefile = open(prepath, 'w+')
-    bamfile = open(bampath, 'w+')
-    vcffile = open(vcfpath, 'w+')
-    paifile = open(paipath, 'w+')
-    b2tfile = open(b2tpath, 'w+')
-    etrfile = open(etrpath, 'w+')
+# -------------------------------------------------------
+# Automatically detect CSV or TSV
+# -------------------------------------------------------
+def read_samplesheet(path):
+    text = Path(path).read_text().splitlines()[0]
 
-    for r in df.iterrows():
-        # print(r)
-        # TODO: handle replicates
-        sample = r[1][0]
-        reppair = r[1][1]
-        tumor = r[1][2]
-        normal = r[1][3]
-        sample_rep = '{}_{}'.format(sample, reppair)
+    if "," in text and "\t" not in text:
+        sep = ","
+    elif "\t" in text and "," not in text:
+        sep = "\t"
+    else:
+        raise ValueError(
+            "Cannot detect delimiter (file contains mixed separators). "
+            "Ensure the file is strictly comma OR tab separated."
+        )
+
+    return pd.read_csv(path, sep=sep, header=0)
+
+
+# -------------------------------------------------------
+# Validation of input files + BAM/BAI existence
+# -------------------------------------------------------
+def validate_paths(inpath, folder, out_folder_vm, df):
+    if not inpath.exists():
+        raise FileNotFoundError(f"Input file not found: {inpath}")
+
+    if not folder.exists():
+        raise FileNotFoundError(f"Output TSV folder not found: {folder}")
+
+    if not out_folder_vm.exists():
+        raise FileNotFoundError(f"Pipeline output folder not found: {out_folder_vm}")
+
+    for _, row in df.iterrows():
+        tumor = resolve_path(row["tumor_bam"])
+        normal = resolve_path(row["normal_bam"])
+
+        if not tumor.exists():
+            raise FileNotFoundError(f"Tumor BAM missing: {tumor}")
+
+        if not normal.exists():
+            raise FileNotFoundError(f"Normal BAM missing: {normal}")
+
+        if not tumor.with_suffix(".bai").exists():
+            raise FileNotFoundError(f"Tumor BAI missing: {tumor.with_suffix('.bai')}")
+
+        if not normal.with_suffix(".bai").exists():
+            raise FileNotFoundError(f"Normal BAI missing: {normal.with_suffix('.bai')}")
+
+
+# -------------------------------------------------------
+# MAIN TSV GENERATOR
+# -------------------------------------------------------
+def make_input(df, folder, out_folder_vm, skip_preprocessing):
+
+    prepath = folder / "preproc.tsv"
+    bampath = folder / "bams.tsv"
+    vcfpath = folder / "vcfs.tsv"
+    paipath = folder / "pairs_wo_reps.tsv"
+    b2tpath = folder / "pairs_w_cands.tsv"
+    etrpath = folder / "samples_w_cands.tsv"
+
+    prefile = prepath.open("w")
+    bamfile = bampath.open("w")
+    vcffile = vcfpath.open("w")
+    paifile = paipath.open("w")
+    b2tfile = b2tpath.open("w")
+    etrfile = etrpath.open("w")
+
+    for _, row in df.iterrows():
+
+        sample = row["sample_name"]
+        reppair = str(row["pair_identifier"])
+        tumor = resolve_path(row["tumor_bam"])
+        normal = resolve_path(row["normal_bam"])
+
+        sample_rep = f"{sample}_{reppair}"
+
+        # -------------------------------
+        # Preprocessing file
+        # -------------------------------
         if skip_preprocessing != "True":
-            print(
-                '{}_tumor\ttumor\t{}'.format(sample_rep, tumor), file=prefile
-            )
-            print(
-                '{}_normal\tnormal\t{}'.format(sample_rep, normal), file=prefile
-            )
+            print(f"{sample_rep}_tumor\ttumor\t{tumor}", file=prefile)
+            print(f"{sample_rep}_normal\tnormal\t{normal}", file=prefile)
 
-            tumor = os.path.join(
-                out_folder_vm,
-                'output_01_01_preprocessed_bams',
-                '{}_tumor'.format(sample_rep),
-                '{}_tumor.preprocessed.bam'.format(sample_rep)
-            )
-            normal = os.path.join(
-                out_folder_vm,
-                'output_01_01_preprocessed_bams',
-                '{}_normal'.format(sample_rep),
-                '{}_normal.preprocessed.bam'.format(sample_rep)
-            )
+            tumor = out_folder_vm / "output_01_01_preprocessed_bams" / f"{sample_rep}_tumor" / f"{sample_rep}_tumor.preprocessed.bam"
+            normal = out_folder_vm / "output_01_01_preprocessed_bams" / f"{sample_rep}_normal" / f"{sample_rep}_normal.preprocessed.bam"
 
-        print('{}\tprimary:{}'.format(sample_rep, tumor), file=bamfile)
-        print('{}\tnormal:{}'.format(sample_rep, normal), file=bamfile)
+        # -------------------------------
+        # Bams
+        # -------------------------------
+        print(f"{sample_rep}\tprimary:{tumor}", file=bamfile)
+        print(f"{sample_rep}\tnormal:{normal}", file=bamfile)
 
-        print('{}_{}\t{}'.format(
-            sample,
-            reppair,
-            os.path.join(
-                out_folder_vm,
-                'output_01_02_candidates_strelka2',
-                '{}'.format(sample_rep),
-                '{}.strelka2.somatic.vcf.gz'.format(sample_rep)
-            )
-        ), file=vcffile)
-
-        print(
-            '{}_{}'.format(sample, reppair),
-            tumor,
-            normal,
-            file=paifile,
-            sep='\t'
+        # -------------------------------
+        # VCF candidates
+        # -------------------------------
+        strelka_vcf = (
+            out_folder_vm
+            / "output_01_02_candidates_strelka2"
+            / sample_rep
+            / f"{sample_rep}.strelka2.somatic.vcf.gz"
         )
 
+        print(f"{sample}_{reppair}\t{strelka_vcf}", file=vcffile)
+
+        # -------------------------------
+        # pairs_wo_reps.tsv
+        # -------------------------------
+        print(f"{sample}_{reppair}\t{tumor}\t{normal}", file=paifile)
+
+        # -------------------------------
+        # samples_w_cands.tsv
+        # -------------------------------
         print(
             sample,
-            'call',
+            "call",
             reppair,
-            os.path.join(
-                out_folder_vm, 'output_01_03_vcf_postprocessing', sample_rep,
-                '{}.vaf.vcf'.format(sample_rep)
-            ),
+            out_folder_vm / "output_01_03_vcf_postprocessing" / sample_rep / f"{sample_rep}.vaf.vcf",
             file=etrfile,
-            sep='\t'
+            sep="\t",
         )
 
+        # -------------------------------
+        # pairs_w_cands.tsv
+        # -------------------------------
         print(
             sample,
-            'call',
+            "call",
             reppair,
             tumor,
-            tumor[:-3] + 'bai',
+            f"{tumor}.bai",
             normal,
-            normal[:-3] + 'bai',
-            os.path.join(
-                out_folder_vm,
-                'output_01_04_candidates_extratrees',
-                'Production_Model',
-                '{}.tsv'.format(sample)
-            ),
+            f"{normal}.bai",
+            out_folder_vm / "output_01_04_candidates_extratrees" / "Production_Model" / f"{sample}.tsv",
             file=b2tfile,
-            sep='\t'
+            sep="\t",
         )
 
     prefile.close()
@@ -112,64 +160,23 @@ def make_input(inpath, folder, out_folder_vm, skip_preprocessing):
     b2tfile.close()
 
 
-def validate_paths(inpath, folder, out_folder_vm):
-    if not os.path.exists(inpath):
-        raise FileNotFoundError(
-            'The input file was not found in specified location: {}'.format(
-                inpath
-            )
-        )
-    if not os.path.exists(folder):
-        raise FileNotFoundError(
-            'The output folder for TSVs was not found in specified location: {}'.format(
-                folder
-            )
-        )
-    if not os.path.exists(out_folder_vm):
-        raise FileNotFoundError(
-            'The output folder for the pipeline was not found in specified location: {}'.format(
-                out_folder_vm
-            )
-        )
-
-    df = pd.read_csv(inpath, sep='\t', header=None)
-    for r in df.iterrows():
-        tumor = r[1][2]
-        normal = r[1][3]
-        if not os.path.exists(tumor):
-            raise FileNotFoundError(
-                'The tumor BAM was not found in specified location: {}'.format(
-                    tumor
-                )
-            )
-        if not os.path.exists(normal):
-            raise FileNotFoundError(
-                'The normal BAM was not found in specified location: {}'.format(
-                    normal
-                )
-            )
-        if not os.path.exists(tumor[:-3] + 'bai'):
-            raise FileNotFoundError(
-                'The tumor BAM index was not found in specified location: {}'.format(
-                    tumor[:-3] + 'bai'
-                )
-            )
-        ,
-        if not os.path.exists(normal[:-3] + 'bai'):
-            raise FileNotFoundError(
-                'The normal BAM index was not found in specified location: {}'.format(
-                    normal[:-3] + 'bai'
-                )
-            )
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(prog='Prepares necessary input files')
-    parser.add_argument('-i', '--input_file', type=str)
-    parser.add_argument('-o', '--out_folder', type=str)
-    parser.add_argument('-O', '--out_folder_vm', type=str)
-    parser.add_argument('-s', '--skip_preprocessing', type=str)
+# -------------------------------------------------------
+# Entrypoint
+# -------------------------------------------------------
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="Prepares necessary input files")
+    parser.add_argument("-i", "--input_file", type=str)
+    parser.add_argument("-o", "--out_folder", type=str)
+    parser.add_argument("-O", "--out_folder_vm", type=str)
+    parser.add_argument("-s", "--skip_preprocessing", type=str)
 
     args = parser.parse_args()
-    validate_paths(args.input_file, args.out_folder, args.out_folder_vm)
-    make_input(args.input_file, args.out_folder, args.out_folder_vm, args.skip_preprocessing)
+
+    inpath = resolve_path(args.input_file)
+    folder = resolve_path(args.out_folder)
+    out_folder_vm = resolve_path(args.out_folder_vm)
+
+    df = read_samplesheet(inpath)
+
+    validate_paths(inpath, folder, out_folder_vm, df)
+    make_input(df, folder, out_folder_vm, args.skip_preprocessing)
