@@ -13,7 +13,7 @@ process STAGE_MODELS {
     path("${models_dir}/3ddensenet_snv.pt")       , emit: ddensenet_snv
     path("${models_dir}/extra_trees.indel.joblib"), emit: extra_trees_indel
     path("${models_dir}/extra_trees.snv.joblib")  , emit: extra_trees_snv
-    path("versions.yml")                   , emit: versions
+    path("versions.yml")                          , emit: versions
 
     when:
     task.ext.when == null || task.ext.when

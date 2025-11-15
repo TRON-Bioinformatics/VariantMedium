@@ -1,7 +1,7 @@
 include { PREPARE_INPUTS } from './../modules/prepare_inputs/main'
 
 
-workflow PREPARE_PIPELINE_INPUTS {
+workflow VARIANTMEDIUM_PREPARE_INPUTS {
 
     take:
     ch_samplesheet

@@ -1,15 +1,19 @@
 process CALL_VARIANTS {
-    tag "${sample_name}"
-    label 'process_medium'
+    tag "-"
+    label 'process_high'
 
     conda "${moduleDir}/environment.yml"
     container "https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/a7/a73b7de4a8d00029f69b6cef20b74e1a1d6b48c1d7d5a65b5e55cf09c3fe6ce7/data"
 
     input:
-    tuple val(sample_name), path(out_path), path(home_folder), path(pretrained_model), val(prediction_mode), val(strategy_call)
+    path(home_folder)
+    path(out_path) 
+    path(pretrained_model)
+    val(prediction_mode)
+    val(strategy_call)
 
     output:
-    path ("${sample_name}/${out_path}/"), emit: call_outs
+    path ("${out_path}/"), emit: call_outs
     path ("versions.yml")               , emit: versions
 
     when:

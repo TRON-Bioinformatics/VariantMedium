@@ -1,28 +1,16 @@
-include { PREPARE_PIPELINE_INPUTS } from './workflows/prepare_inputs'
-include { PARSE_SAMPLESHEET       } from './subworkflows/parse_samplesheet'
-include { VARIANTMEDIUM           } from './workflows/variantmedium'
+include { PARSE_SAMPLESHEET               } from './subworkflows/parse_samplesheet'
+include { VALIDATE_PARAMETERS             } from './subworkflows/parameter_validation'
+include { VARIANTMEDIUM_PREPARE_INPUTS    } from './workflows/variantmedium_prepare_inputs'
+include { VARIANTMEDIUM_STAGE_DATA        } from './workflows/variantmedium_stage_data'
+include { VARIANTMEDIUM_FILTER_CANDIDATES } from './workflows/variantmedium_filter_candidates.nf'
+include { VARIANTMEDIUM_CALL_VARIANTS     } from './workflows/variantmedium_call_variants.nf'
 
 workflow {
 
     // ----------------------------------------
-    // Check if required params are provided
+    // Parameter validation
     // ----------------------------------------
-    //output dir check
-    if(!params.outdir) {
-        log.error "Please provide a output directory with --outdir"
-    }
-    // check for samplesheet
-    if(!params.samplesheet) {
-        log.error "Please provide a samplesheet with --samplesheet"
-    }
-    // check for execution step
-    if(!params.execution_step) {
-        log.error "Please provide an execution step with --execution_step"
-    }
-    // check if data_dir is provided when run with singularity
-    if(workflow.profile.contains("singularity") && !params.data_dir) {
-        log.error "Please provide path to the bam files as bind mount when running with singularity"
-    }
+    VALIDATE_PARAMETERS()
 
     // ----------------------------------------
     // Samplesheet validation
@@ -34,21 +22,43 @@ workflow {
     }  else {
         ch_samplesheet = channel.fromPath("${params.samplesheet}")
     }
-    log.info "[INFO] Samplesheet -> ${samplesheetFile}"
+    log.info "[INFO] Samplesheet -> [${samplesheetFile}]"
     PARSE_SAMPLESHEET(ch_samplesheet)
 
     // ----------------------------------------
-    // Prepare inputs
+    // Variantmedium prepare input tsv files (step - 1)
     // ----------------------------------------
-    if (params.execution_step == "prepare_inputs") {
-        PREPARE_PIPELINE_INPUTS(ch_samplesheet)
+    if (params.execution_step == "prepare_tsv_inputs") {
+        VARIANTMEDIUM_PREPARE_INPUTS(ch_samplesheet)
     }
-    
+
     // ----------------------------------------
-    // Run variantmedium
+    // Variantmedium stage ref data & models (step - 2)
     // ----------------------------------------
-    if (params.execution_step == "call") {
-        VARIANTMEDIUM(ch_samplesheet)
+    if (params.execution_step == "stage_data") {
+        VARIANTMEDIUM_STAGE_DATA()
     }
+
+    // ----------------------------------------
+    // Run variantmedium candidate filtering (step - 5)
+    // ----------------------------------------
+    if (params.execution_step == "filter") {
+        
+        ch_tsv_input = channel.fromPath("${params.outdir}/tsv_folder/samples_w_cands.tsv", checkIfExists: true)
+        ch_outdir = channel.fromPath("${params.outdir}/output_01_04_candidates_extratrees", checkIfExists: true)
+        ch_model_extra_tress_snv = channel.fromPath("${params.outdir}/data_staging/models/extra_trees.snv.joblib", checkIfExists: true)
+        ch_model_extra_tress_indel = channel.fromPath("${params.outdir}/data_staging/models/extra_trees.indel.joblib", checkIfExists: true)
+            
+        VARIANTMEDIUM_FILTER_CANDIDATES(
+            ch_tsv_input,
+            ch_outdir,
+            ch_model_extra_tress_snv,
+            ch_model_extra_tress_indel
+        )
+    }
+
+    // ----------------------------------------
+    // Run variantmedium variant calling (step - 8)
+    // ----------------------------------------
 
 }
