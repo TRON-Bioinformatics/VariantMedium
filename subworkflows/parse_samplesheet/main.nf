@@ -1,37 +1,61 @@
+// -------------------------------------------------------
+// Samplesheet validation
+// -------------------------------------------------------
+def validateSamplesheet(samplesheet_ch) {
+    samplesheet_ch.map { path ->
+        def header = path.text.readLines()[0]
+        def cols = header.split(/,|\t/)  // handle CSV or TSV
+
+        def required = ['sample_name','pair_identifier','tumor_bam','normal_bam']
+        def missing = required.findAll { it !in cols }
+        if (missing) {
+            error "Samplesheet is missing required columns: ${missing.join(', ')}"
+        }
+
+        // Optional: check BAM files exist
+        path.text.readLines().tail().each { line ->
+            def vals = line.split(/,|\t/)
+            def tumor = file(vals[2])
+            def normal = file(vals[3])
+
+            if (!tumor.exists()) error "Tumor BAM missing: $tumor"
+            if (!normal.exists()) error "Normal BAM missing: $normal"
+        }
+    }
+}
+    
+
 workflow PARSE_SAMPLESHEET {
 
     take:
     ch_samplesheet // channel ["path-to-samplesheet"]
 
     main:
+    
+    validateSamplesheet(ch_samplesheet)
+    log.info "[INFO] Samplesheet validated"
 
-    // ch_samplesheet.view()
     ch_samplesheet
         .splitCsv(header: true)
         .map { row ->
-            // Trim paths to remove extra spaces
-            def tumorPath = row.tumor_bam_path.trim()
-            def normalPath = row.normal_bam_path.trim()
 
-            // Convert to file object
+            def tumorPath = row.tumor_bam.trim()
+            def normalPath = row.normal_bam.trim()
+
+            // get file object
             def tumorFile = file(tumorPath)
             def normalFile = file(normalPath)
 
-            // Debug check
+            // check if files exists
             if( !tumorFile.exists() ) { error "Tumor BAM does not exist: $tumorPath" }
             if( !normalFile.exists() ) { error "Normal BAM does not exist: $normalPath" }
 
-            tuple(row.sample_name, row.replicate_pair_identifier, tumorFile, normalFile)
+            tuple(row.sample_name, row.pair_identifier, tumorFile, normalFile)
         }
         .set { sample_info_ch }
-
-    // Example: print out the parsed data
-    // sample_info_ch.view {
-    //     sample_name, pair_id, tumor_bam, normal_bam ->
-    //     "Sample: ${sample_name}, Pair: ${pair_id}  Tumor: ${tumor_bam}  Normal: ${normal_bam}"
-    // }
     
     emit:
+
     ch_samples = sample_info_ch
 
 }

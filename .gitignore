@@ -126,3 +126,4 @@ trace-*
 *.pt
 *.joblib
 ref/
+*.tsv

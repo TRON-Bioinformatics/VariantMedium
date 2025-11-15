@@ -3,7 +3,7 @@ process FILTER_CANDIDATES {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    container "community.wave.seqera.io/library/numpy_pandas_scikit-learn_scipy_pruned:9cd8ec05ff7a5fac"
+    container "https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/a7/a73b7de4a8d00029f69b6cef20b74e1a1d6b48c1d7d5a65b5e55cf09c3fe6ce7/data"
 
     input:
     tuple val(sample_name), path(input_files), path(output), val(model)

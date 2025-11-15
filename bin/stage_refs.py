@@ -1,16 +1,6 @@
-#!/usr/bin/env python3
-"""
-Download and prepare hg38 reference data.
-
-Usage:
-    ./download_references.py <output_dir>
-
-Example:
-    ./download_references.py /path/to/ref_data
-"""
+#!/usr/bin/env python
 
 import os
-import sys
 import subprocess
 import tarfile
 import urllib.request
@@ -29,6 +19,7 @@ def run(cmd: list[str]):
 
 def download_file(url: str, dest: Path):
     """Download a file if it does not already exist."""
+    dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists():
         print(f"[SKIP] {dest.name} already exists.")
         return
@@ -47,19 +38,7 @@ def extract_tar_gz(tar_path: Path, dest_dir: Path):
 
 
 def main():
-    # -------------------------
-    # Parse argument
-    # -------------------------
-    if len(sys.argv) != 2:
-        print("Usage: ./download_references.py <output_dir>")
-        sys.exit(1)
-
-    ref_folder = Path(sys.argv[1]).resolve()
-    bin_folder = ref_folder / "bin"
-    ref_folder.mkdir(parents=True, exist_ok=True)
-    bin_folder.mkdir(parents=True, exist_ok=True)
-
-    print(f"📂 Output directory: {ref_folder}\n")
+    cwd = Path(".")  # all outputs go here
 
     # -------------------------
     # Reference VCF files
@@ -69,7 +48,7 @@ def main():
         "ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/dbsnp_146.hg38.vcf.gz"
     ]
     for url in vcf_urls:
-        dest = ref_folder / os.path.basename(url)
+        dest = cwd / os.path.basename(url)
         download_file(url, dest)
 
     # -------------------------
@@ -80,30 +59,30 @@ def main():
         "GRCh38.d1.vd1_GATK_indices.tar.gz": "https://api.gdc.cancer.gov/data/2c5730fb-0909-4e2a-8a7a-c9a7f8b2dad5",
     }
     for fname, url in genome_urls.items():
-        dest = ref_folder / fname
+        dest = cwd / fname
         download_file(url, dest)
-        extract_tar_gz(dest, ref_folder)
+        extract_tar_gz(dest, cwd)
 
     # -------------------------
     # Exome target region
     # -------------------------
     bb_url = "http://hgdownload.soe.ucsc.edu/gbdb/hg38/exomeProbesets/S07604624_Covered.bb"
-    bb_dest = ref_folder / "S07604624_Covered.bb"
+    bb_dest = cwd / "S07604624_Covered.bb"
     download_file(bb_url, bb_dest)
 
     # -------------------------
     # bigBedToBed binary
     # -------------------------
     bigbed_url = "https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigBedToBed"
-    bigbed_bin = bin_folder / "bigBedToBed"
+    bigbed_bin = cwd / "bigBedToBed"
     download_file(bigbed_url, bigbed_bin)
     bigbed_bin.chmod(0o755)
 
-    # Convert .bb to .bed
-    bed_dest = ref_folder / "S07604624_Covered.bed"
-    run([str(bigbed_bin), str(bb_dest), str(bed_dest)])
+    # Convert .bb → .bed
+    bed_dest = cwd / "S07604624_Covered.bed"
+    run([str(bigbed_bin.resolve()), str(bb_dest.resolve()), str(bed_dest.resolve())])
 
-    print("\n✅ All reference files downloaded and prepared successfully.")
+    print("\n✅ All reference files downloaded and prepared successfully in current directory.")
 
 
 if __name__ == "__main__":

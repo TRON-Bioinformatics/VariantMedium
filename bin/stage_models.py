@@ -1,18 +1,7 @@
-#!/usr/bin/env python3
-"""
-Download and prepare hg38 reference data.
-
-Usage:
-    ./stage_models.py <output_dir>
-
-Example:
-    ./stage_models.py /path/to/models_dir
-"""
-
+#!/usr/bin/env python
 
 import hashlib
 import requests
-import sys
 from pathlib import Path
 
 def download_file(url: str, dest: Path):
@@ -36,15 +25,9 @@ def verify_checksum(file_path: Path, expected_md5: str):
     actual_md5 = md5.hexdigest()
     if actual_md5 != expected_md5:
         raise ValueError(f"Checksum mismatch for {file_path.name}\nExpected: {expected_md5}\nActual:   {actual_md5}")
-    print(f"✅ Checksum Verified: {file_path.name}")
+    print(f" Checksum Verified: {file_path.name}")
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: download_models.py <models_dir>")
-        sys.exit(1)
-
-    models_dir = Path(sys.argv[1])
-    models_dir.mkdir(parents=True, exist_ok=True)
 
     files = [
         {
@@ -70,13 +53,12 @@ def main():
     ]
 
     for f in files:
-        dest = models_dir / f["filename"]
-        print(f"\n Downloading {f['filename']} ...")
+        dest = Path(f["filename"])
+        print(f"\nDownloading {f['filename']} ...")
         download_file(f["url"], dest)
         verify_checksum(dest, f["checksum"])
 
-    print(f"\n✅ All models downloaded and verified: {models_dir.resolve()}")
-
+    print("\n All models downloaded and verified")
 
 if __name__ == "__main__":
     main()

@@ -3,10 +3,10 @@ process STAGE_REFERENCES {
     label 'process_medium'
 
     conda "${moduleDir}/environment.yml"
-    container "community.wave.seqera.io/library/pandas:2.3.3--5a902bf824a79745c"
+    container "https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/b7/b77f6190e0770242d259d2982968ec82d3fb244d1e7f207c13bcf85d44b468e1/data"
 
     input:
-    path(ref_outdir)
+    val(ref_outdir)
 
     output:
     path("${ref_outdir}/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz"), emit: grch38_vcf_gz
@@ -24,10 +24,11 @@ process STAGE_REFERENCES {
     task.ext.when == null || task.ext.when
 
     script:
-    def ref_dir = "${ref_outdir}" ? "${ref_outdir}" : "ref"
-
     """
-    stage_refs.py ${ref_dir}
+    stage_refs.py
+
+    mkdir -p ${ref_outdir}/
+    mv *.{gz,dict,fa,fai,bb,bed} ${ref_outdir}/
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
