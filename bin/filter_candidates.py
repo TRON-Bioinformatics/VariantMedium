@@ -7,7 +7,9 @@ import os
 # Add the src folder to Python module search path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from src.filter_candidates.filter import filter
+from src.filter_candidates.constants import PCAWG
+from src.filter_candidates import constants_ml_snv, constants_ml_indel, extra_trees_functions, extra_trees_io
+from src.filter_candidates.filter import filter as variant_filter
 import pandas as pd
 import argparse
 
@@ -26,13 +28,13 @@ if __name__ == '__main__':
         args.input_files, sep='\t', header=None
     )
 
-    filter(
+    variant_filter(
         df,
         args.model,
         args.output,
         False
     )
-    filter(
+    variant_filter(
         df,
         args.model,
         args.output,

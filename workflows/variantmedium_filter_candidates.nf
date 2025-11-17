@@ -17,8 +17,6 @@ workflow VARIANTMEDIUM_FILTER_CANDIDATES {
     main:
 
     ch_versions                = channel.empty()
-    ch_model_extra_trees_snv   = channel.empty()
-    ch_model_extra_trees_indel = channel.empty()
 
     // indel filtering
     if ( params.indel_calling ) {

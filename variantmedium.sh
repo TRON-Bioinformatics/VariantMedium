@@ -136,7 +136,7 @@ mkdir -p \
     "${OUTDIR}/output_01_01_preprocessed_bams" \
     "${OUTDIR}/output_01_02_candidates_strelka2" \
     "${OUTDIR}/output_01_03_vcf_postprocessing" \
-    "${OUTDIR}/output_01_04_candidates_extratrees" \
+    "${OUTDIR}/output_01_04_candidates_extratrees/Production_Model" \
     "${OUTDIR}/output_01_05_tensors" \
     "${OUTDIR}/output_01_06_calls_densenet"
 
@@ -208,39 +208,38 @@ fi
 # 4. Candidate calling (Strelka2)
 #---------------------------------------
 
-pushd "${OUTDIR}/output_01_02_candidates_strelka2" >/dev/null
+# pushd "${OUTDIR}/output_01_02_candidates_strelka2" >/dev/null
 
-INTERVALS_PARAM=()
-[[ -f "$EXOME_BED" ]] && INTERVALS_PARAM=(--intervals "$EXOME_BED")
+# INTERVALS_PARAM=()
+# [[ -f "$EXOME_BED" ]] && INTERVALS_PARAM=(--intervals "$EXOME_BED")
 
-CMD=(nextflow run tron-bioinformatics/tronflow-strelka2
-    -r v0.2.4
-    -profile "${PROFILE}"
-    --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv"
-    --reference "${REF}"
-    --output "${OUTDIR}/output_01_02_candidates_strelka2"
-)
-CMD+=("${INTERVALS_PARAM[@]}")
-CMD+=(-resume -with-report -with-trace)
+# CMD=(nextflow run tron-bioinformatics/tronflow-strelka2
+#     -r v0.2.4
+#     -profile "${PROFILE}"
+#     --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv"
+#     --reference "${REF}"
+#     --output "${OUTDIR}/output_01_02_candidates_strelka2"
+# )
+# CMD+=("${INTERVALS_PARAM[@]}")
+# CMD+=(-resume -with-report -with-trace)
 
-run_step "Candidate calling (Strelka2)" "${CMD[@]}"
-popd >/dev/null
+# run_step "Candidate calling (Strelka2)" "${CMD[@]}"
+# popd >/dev/null
 
 #---------------------------------------
 # 5. Feature generation
 #---------------------------------------
 
-CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
-    -r v3.1.2
-    -profile "${PROFILE}"
-    --input_vcfs "${TSV_FOLDER}/vcfs.tsv"
-    --input_bams "${TSV_FOLDER}/bams.tsv"
-    --reference "${REF}"
-    --output "${OUTDIR}/output_01_03_vcf_postprocessing"
-    -resume -with-report -with-trace
-)
+# CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
+#     -r v3.1.2
+#     -profile "${PROFILE}"
+#     --input_vcfs "${TSV_FOLDER}/vcfs.tsv"
+#     --input_bams "${TSV_FOLDER}/bams.tsv"
+#     --reference "${REF}"
+#     --output "${OUTDIR}/output_01_03_vcf_postprocessing"
+# )
 
-run_step "Feature generation" "${CMD[@]}"
+# run_step "Feature generation" "${CMD[@]}"
 
 #---------------------------------------
 # 6. ExtraTrees candidate filtering
@@ -249,10 +248,8 @@ run_step "Feature generation" "${CMD[@]}"
 CMD=(nextflow run main.nf
     -profile "${PROFILE}"
     --samplesheet "${SAMPLESHEET}"
-    --outdir "${OUTDIR}/output_01_04_candidates_extratrees"
+    --outdir "${OUTDIR}"
     --execution_step filter_candidates
-    -with-report
-    -with-trace
 )
 run_step "ExtraTrees candidate filtering" "${CMD[@]}"
 
@@ -260,42 +257,40 @@ run_step "ExtraTrees candidate filtering" "${CMD[@]}"
 # 7. Tensor generation
 #---------------------------------------
 
-pushd "${OUTDIR}/output_01_05_tensors" >/dev/null
+# pushd "${OUTDIR}/output_01_05_tensors" >/dev/null
 
-CMD=(nextflow run tron-bioinformatics/bam2tensor
-    -r 1.0.2
-    -profile "${PROFILE}"
-    --input_files "${TSV_FOLDER}/pairs_w_cands.tsv"
-    --publish_dir "${OUTDIR}/output_01_05_tensors"
-    --reference "${REF}"
-    --window 150
-    --max_coverage 500
-    --read_length 50
-    --max_mapq 60
-    --max_baseq 82
-    -with-report
-    -with-trace
-)
+# CMD=(nextflow run tron-bioinformatics/bam2tensor
+#     -r 1.0.2
+#     -profile "${PROFILE}"
+#     --input_files "${TSV_FOLDER}/pairs_w_cands.tsv"
+#     --publish_dir "${OUTDIR}/output_01_05_tensors"
+#     --reference "${REF}"
+#     --window 150
+#     --max_coverage 500
+#     --read_length 50
+#     --max_mapq 60
+#     --max_baseq 82
+# )
 
-run_step "Tensor generation" "${CMD[@]}"
-popd >/dev/null
+# run_step "Tensor generation" "${CMD[@]}"
+# popd >/dev/null
 
 #---------------------------------------
 # 8. 3D DenseNet variant calling
 #---------------------------------------
 
-pushd "${OUTDIR}/output_01_06_calls_densenet" >/dev/null
+# pushd "${OUTDIR}/output_01_06_calls_densenet" >/dev/null
 
-CMD=(nextflow run main.nf
-    -profile "${PROFILE}"
-    --samplesheet "${SAMPLESHEET}"
-    --outdir "${OUTDIR}/output_01_06_calls_densenet"
-    --execution_step call_variants
-    -with-report
-    -with-trace
-)
+# CMD=(nextflow run main.nf
+#     -profile "${PROFILE}"
+#     --samplesheet "${SAMPLESHEET}"
+#     --outdir "${OUTDIR}/output_01_06_calls_densenet"
+#     --execution_step call_variants
+#     -with-report
+#     -with-trace
+# )
 
-run_step "3D DenseNet SNV/Indel calling" "${CMD[@]}"
-popd >/dev/null
+# run_step "3D DenseNet SNV/Indel calling" "${CMD[@]}"
+# popd >/dev/null
 
 log "🎉 Pipeline completed successfully!"

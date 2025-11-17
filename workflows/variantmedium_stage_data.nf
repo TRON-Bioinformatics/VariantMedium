@@ -6,8 +6,8 @@ workflow VARIANTMEDIUM_STAGE_DATA {
     main:
 
     DATA_STAGING (
-        "${params.reference_path}",
-        "${params.model_path}"
+        "${params.reference_dir}",
+        "${params.models_dir}"
     )
 
 }

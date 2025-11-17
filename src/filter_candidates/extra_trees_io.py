@@ -2,7 +2,7 @@ import copy
 import pandas as pd
 import pysam
 
-from constants import SAVE_COLUMNS, CELL_LINES
+from filter_candidates.constants import SAVE_COLUMNS, CELL_LINES
 
 
 def get_all_dfs(
