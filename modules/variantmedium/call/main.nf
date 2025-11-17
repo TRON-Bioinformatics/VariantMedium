@@ -7,28 +7,26 @@ process CALL_VARIANTS {
 
     input:
     path(home_folder)
-    path(out_path) 
     path(pretrained_model)
     val(prediction_mode)
-    val(strategy_call)
+    val(out_path)
 
     output:
     path ("${out_path}/"), emit: call_outs
-    path ("versions.yml")               , emit: versions
+    path ("versions.yml"), emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''
-    def predict_mode = "${prediction_mode}" ? "--prediction_mode ${prediction_mode}": "--prediction_mode somatic_snv"
-    
+
     """
     run_variant_medium.py run \\
         --home_folder ${home_folder} \\
         --unknown_strategy_call keep_as_false \\
         --pretrained_model ${pretrained_model} \\
-        ${predict_mode} \\
+        --prediction_mode ${prediction_mode} \\
         --out_path ${out_path} \\
         --learning_rate ${params.learning_rate} \\
         --epoch ${params.epoch} \\

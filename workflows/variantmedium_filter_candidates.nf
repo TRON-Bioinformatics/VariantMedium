@@ -1,6 +1,8 @@
 // nf orchestrator for variant medium candidate filtering step
 
-include { FILTER_CANDIDATES } from './../modules/variantmedium/filter/main'
+include { FILTER_CANDIDATES as FILTER_CANDIDATES_SNV   } from './../modules/variantmedium/filter/main'
+include { FILTER_CANDIDATES as FILTER_CANDIDATES_INDEL } from './../modules/variantmedium/filter/main'
+
 
 
 workflow VARIANTMEDIUM_FILTER_CANDIDATES {
@@ -21,25 +23,25 @@ workflow VARIANTMEDIUM_FILTER_CANDIDATES {
     // indel filtering
     if ( params.indel_calling ) {
         
-        FILTER_CANDIDATES (
+        FILTER_CANDIDATES_INDEL (
             ch_input_tsv,
             ch_model_extra_trees_indel,
             ch_output_dir
         )
-        ch_filtered_candidates_indels = FILTER_CANDIDATES.out.filtered_candidates
-        ch_versions = ch_versions.mix(FILTER_CANDIDATES.out.versions)
+        ch_filtered_candidates_indels = FILTER_CANDIDATES_INDEL.out.filtered_candidates
+        ch_versions = ch_versions.mix(FILTER_CANDIDATES_INDEL.out.versions)
     }
 
     // snv filtering
     if ( params.snv_calling ) {
         
-        FILTER_CANDIDATES (
+        FILTER_CANDIDATES_SNV (
             ch_input_tsv,
             ch_model_extra_trees_snv,
             ch_output_dir
         )
-        ch_filtered_candidates_snvs = FILTER_CANDIDATES.out.filtered_candidates
-        ch_versions = ch_versions.mix(FILTER_CANDIDATES.out.versions)
+        ch_filtered_candidates_snvs = FILTER_CANDIDATES_SNV.out.filtered_candidates
+        ch_versions = ch_versions.mix(FILTER_CANDIDATES_SNV.out.versions)
     }
 
     emit:

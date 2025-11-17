@@ -1,5 +1,7 @@
 workflow VALIDATE_PARAMETERS {
 
+    log.info "[INFO] Validating parameters"
+
     // check for outdir
     if(!params.outdir) {
         log.error "Please provide a output directory with --outdir"
@@ -19,9 +21,9 @@ workflow VALIDATE_PARAMETERS {
     }
     
     // check if execution step is valid
-    def valid_steps = ["prepare_tsv_inputs", "call"]
+    def valid_steps = ["generate_tsv_files", "stage_data", "filter_candidates", "call_variants"]
     if(!valid_steps.contains(params.execution_step)) {
-        log.error "Invalid execution step: ${params.execution_step}. Valid options are: ${valid_steps.join(', ')}"
+        log.error "Invalid execution step: ${params.execution_step}. Valid options are: [${valid_steps.join(', ')}]"
         exit(1)
     }
 
