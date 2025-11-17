@@ -39,6 +39,7 @@ REQUIRED OPTIONS:
   --samplesheet        PATH        Path to the input CSV/TSV samplesheet
   --outdir             PATH        Output directory for all pipeline results
   --profile            STRING      Nextflow profile name (conda, singularity) [default: conda]
+  --config             PATH        Path to custom config file (.conf)
 
 OPTIONAL:
   --skip_data_staging             Skip staging reference data & models
@@ -49,14 +50,14 @@ GENERAL:
 
 DESCRIPTION:
   Command-line wrapper to run VariantMedium pipeline steps:
-   1. Generate TSV inputs
-   2. Stage reference data & models
-   3. BAM preprocessing
-   4. Candidate calling (Strelka2)
-   5. Feature generation
-   6. ExtraTrees candidate filtering
-   7. Tensor generation (bam2tensor)
-   8. 3D DenseNet variant calling (SNV & INDEL)
+   1. Generate TSV inputs                       -> [VariantMedium generate_tsv_files step]
+   2. Stage reference data & models             -> [VariantMedium stage_data step]
+   3. BAM preprocessing                         -> [tronflow-bam-preprocessing]
+   4. Candidate calling (Strelka2)              -> [tronflow-strelka2]
+   5. Feature generation                        -> [tronflow-vcf-postprocessing]
+   6. ExtraTrees candidate filtering            -> [VariantMedium filter_candidates step]
+   7. Tensor generation (bam2tensor)            -> [bam2tensor]
+   8. 3D DenseNet variant calling (SNV & INDEL) -> [VariantMedium call_variants step]
 
 EOF
     exit 0
@@ -71,12 +72,14 @@ OUTDIR=""
 PROFILE="conda"
 SKIP_DATA_STAGING=false
 SKIP_PREPROCESSING=false
+CONFIG_FILE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --samplesheet) SAMPLESHEET="$2"; shift 2;;
         --outdir) OUTDIR="$2"; shift 2;;
         --profile) PROFILE="$2"; shift 2;;
+        --config) CONFIG_FILE="$2"; shift 2;;
         --skip_data_staging) SKIP_DATA_STAGING=true; shift;;
         --skip_preprocessing) SKIP_PREPROCESSING=true; shift;;
         -h|--help) usage;;
@@ -92,15 +95,31 @@ done
 [[ -f "$SAMPLESHEET" ]] || die "Samplesheet does not exist: $SAMPLESHEET"
 [[ -z "$OUTDIR" ]] && die "--outdir is required"
 
+# ------------------------------
+# Load config file if provided
+# ------------------------------
+if [[ -n "$CONFIG_FILE" ]]; then
+    if [[ ! -f "$CONFIG_FILE" ]]; then
+        echo "[ERROR] Config file not found: $CONFIG_FILE"
+        exit 1
+    fi
+    echo "[INFO] Loading config: $CONFIG_FILE"
+    source "$CONFIG_FILE"
+fi
+
+#---------------------------------------
+log ""
 log "Samplesheet: $SAMPLESHEET"
 log "Output directory: $OUTDIR"
 log "Profile: $PROFILE"
 log "Skip data staging: $SKIP_DATA_STAGING"
 log "Skip BAM preprocessing: $SKIP_PREPROCESSING"
+log ""
+#---------------------------------------
 
 mkdir -p "$OUTDIR"
 PIPE_LOG="${OUTDIR}/pipeline.log"
-: > "$PIPE_LOG"  # clear previous log
+: > "$PIPE_LOG"
 
 #---------------------------------------
 # Derived paths

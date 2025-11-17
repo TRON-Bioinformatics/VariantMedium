@@ -128,3 +128,4 @@ trace-*
 ref/
 *.tsv
 slurm_*
+logs/

@@ -7,6 +7,7 @@ process PREPARE_INPUTS {
 
     input:
     path(input_file)
+    val(output_path)
     val(skip_preprocessing)
 
     output:
@@ -24,6 +25,7 @@ process PREPARE_INPUTS {
     
     prepare_input_files.py \
         -i ${input_file} \
+        -o ${output_path} \
         -s ${skip_preprocessing} \
         ${args}
 
