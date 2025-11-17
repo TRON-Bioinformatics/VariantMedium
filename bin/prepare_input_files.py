@@ -4,11 +4,9 @@ import argparse
 from pathlib import Path
 import pandas as pd
 
-
 # Automatically detect CSV or TSV
 def read_samplesheet(path):
     text = Path(path).read_text().splitlines()[0]
-
     if "," in text and "\t" not in text:
         sep = ","
     elif "\t" in text and "," not in text:
@@ -18,30 +16,26 @@ def read_samplesheet(path):
             "Cannot detect delimiter (file contains mixed separators). "
             "Ensure the file is strictly comma OR tab separated."
         )
-
     return pd.read_csv(path, sep=sep, header=0)
 
-
 # Validation of input BAMs + BAI files
-def validate_paths(df):
+def validate_paths(df, skip_preprocessing):
     for _, row in df.iterrows():
         tumor = Path(row["tumor_bam"])
         normal = Path(row["normal_bam"])
-
         if not tumor.exists():
             raise FileNotFoundError(f"Tumor BAM missing: {tumor}")
         if not normal.exists():
             raise FileNotFoundError(f"Normal BAM missing: {normal}")
-        if not tumor.with_suffix(".bai").exists():
-            raise FileNotFoundError(f"Tumor BAI missing: {tumor.with_suffix('.bai')}")
-        if not normal.with_suffix(".bai").exists():
-            raise FileNotFoundError(f"Normal BAI missing: {normal.with_suffix('.bai')}")
+        if skip_preprocessing.lower() != "true":
+            if not tumor.with_suffix(".bai").exists():
+                raise FileNotFoundError(f"Tumor BAI missing: {tumor.with_suffix('.bai')}")
+            if not normal.with_suffix(".bai").exists():
+                raise FileNotFoundError(f"Normal BAI missing: {normal.with_suffix('.bai')}")
 
-
-# Generate TSVs in current working directory
+# Generate TSVs
 def make_input(df, skip_preprocessing):
     cwd = Path.cwd()
-
     prefile = (cwd / "preproc.tsv").open("w")
     bamfile = (cwd / "bams.tsv").open("w")
     vcffile = (cwd / "vcfs.tsv").open("w")
@@ -52,41 +46,35 @@ def make_input(df, skip_preprocessing):
     for _, row in df.iterrows():
         sample = row["sample_name"]
         reppair = str(row["pair_identifier"])
-        tumor = Path(row["tumor_bam"])
-        normal = Path(row["normal_bam"])
+        tumor_orig = Path(row["tumor_bam"])
+        normal_orig = Path(row["normal_bam"])
         sample_rep = f"{sample}_{reppair}"
 
-        # -------------------------------
-        # Preprocessing file
-        # -------------------------------
-        if skip_preprocessing != "True":
-            print(f"{sample_rep}_tumor\ttumor\t{tumor}", file=prefile)
-            print(f"{sample_rep}_normal\tnormal\t{normal}", file=prefile)
-
-            # Update paths for downstream steps (relative to cwd)
+        if skip_preprocessing.lower() != "true":
+            # Preprocessing paths
             tumor = Path("output_01_01_preprocessed_bams") / f"{sample_rep}_tumor" / f"{sample_rep}_tumor.preprocessed.bam"
             normal = Path("output_01_01_preprocessed_bams") / f"{sample_rep}_normal" / f"{sample_rep}_normal.preprocessed.bam"
 
-        # -------------------------------
-        # BAMs
-        # -------------------------------
+            # Write preproc TSV
+            print(f"{sample_rep}_tumor\ttumor\t{tumor_orig}", file=prefile)
+            print(f"{sample_rep}_normal\tnormal\t{normal_orig}", file=prefile)
+        else:
+            # If skipping preprocessing, use original BAM paths
+            tumor = tumor_orig
+            normal = normal_orig
+
+        # BAM TSV
         print(f"{sample_rep}\tprimary:{tumor}", file=bamfile)
         print(f"{sample_rep}\tnormal:{normal}", file=bamfile)
 
-        # -------------------------------
         # VCF candidates
-        # -------------------------------
         strelka_vcf = Path("output_01_02_candidates_strelka2") / sample_rep / f"{sample_rep}.strelka2.somatic.vcf.gz"
         print(f"{sample}_{reppair}\t{strelka_vcf}", file=vcffile)
 
-        # -------------------------------
-        # pairs_wo_reps.tsv
-        # -------------------------------
+        # pairs_wo_reps
         print(f"{sample}_{reppair}\t{tumor}\t{normal}", file=paifile)
 
-        # -------------------------------
-        # samples_w_cands.tsv
-        # -------------------------------
+        # samples_w_cands
         print(
             sample,
             "call",
@@ -96,9 +84,7 @@ def make_input(df, skip_preprocessing):
             sep="\t",
         )
 
-        # -------------------------------
-        # pairs_w_cands.tsv
-        # -------------------------------
+        # pairs_w_cands
         print(
             sample,
             "call",
@@ -119,17 +105,13 @@ def make_input(df, skip_preprocessing):
     etrfile.close()
     b2tfile.close()
 
-
-# -------------------------------------------------------
 # Entrypoint
-# -------------------------------------------------------
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="Prepares necessary input files")
     parser.add_argument("-i", "--input_file", type=str, required=True)
     parser.add_argument("-s", "--skip_preprocessing", type=str, default="False")
-
     args = parser.parse_args()
 
     df = read_samplesheet(Path(args.input_file))
-    validate_paths(df)
+    validate_paths(df, args.skip_preprocessing)
     make_input(df, args.skip_preprocessing)

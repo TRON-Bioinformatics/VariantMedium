@@ -8,13 +8,12 @@ from pathlib import Path
 
 
 def run(cmd: list[str]):
-    """Run a shell command safely."""
+    """Run a shell command."""
     print(f"[RUN] {' '.join(cmd)}")
     result = subprocess.run(cmd, check=False, capture_output=True, text=True)
     if result.returncode != 0:
         print(f"[ERROR] Command failed: {' '.join(cmd)}\n{result.stderr}")
         raise RuntimeError(f"Command failed: {' '.join(cmd)}")
-    return result.stdout
 
 
 def download_file(url: str, dest: Path):
@@ -37,8 +36,27 @@ def extract_tar_gz(tar_path: Path, dest_dir: Path):
         tar.extractall(dest_dir)
 
 
+def compress_and_index_bed(bed_path: Path):
+    """Compress a BED file with bgzip (-k to keep original) and index it with tabix."""
+
+    bed_gz = bed_path.with_suffix(".bed.gz")
+    tbi_file = bed_gz.with_suffix(".bed.gz.tbi")
+
+    # If both outputs exist, skip
+    if bed_gz.exists() and tbi_file.exists():
+        print(f"[SKIP] {bed_gz.name} and {tbi_file.name} already exist.")
+        return
+
+    print(f"[COMPRESS] {bed_path.name} → {bed_gz.name}")
+    run(["bgzip", "-f", str(bed_path.resolve())])
+
+    print(f"[INDEX] {bed_gz.name} → {tbi_file.name}")
+    run(["tabix", "-p", "bed", str(bed_gz.resolve())])
+
+
+
 def main():
-    cwd = Path(".")  # all outputs go here
+    cwd = Path(".")
 
     # -------------------------
     # Reference VCF files
@@ -81,6 +99,11 @@ def main():
     # Convert .bb → .bed
     bed_dest = cwd / "S07604624_Covered.bed"
     run([str(bigbed_bin.resolve()), str(bb_dest.resolve()), str(bed_dest.resolve())])
+
+    # -------------------------
+    # Compress BED and create .tbi
+    # -------------------------
+    compress_and_index_bed(bed_dest)
 
     print("\n✅ All reference files downloaded and prepared successfully in current directory.")
 

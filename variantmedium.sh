@@ -7,27 +7,28 @@ IFS=$'\n\t'
 #---------------------------------------
 
 log() {
-  printf "[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$1"
+    printf "[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$1"
 }
 
 die() {
-  log "❌ ERROR: $1"
-  exit 1
+    log "❌ ERROR: $1"
+    exit 1
 }
 
 run_step() {
-  local step="$1"
-  shift
-  log "🔹 Starting: $step"
-  if "$@"; then
+    local step="$1"
+    shift
+    log "🔹 Started: $step"
+    # Run command and stream stdout/stderr
+    "$@" 2>&1 | tee -a "${OUTDIR}/pipeline.log"
+    if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
+        die "Step failed: $step"
+    fi
     log "✅ Completed: $step"
-  else
-    die "Step failed: $step"
-  fi
 }
 
 usage() {
-cat <<EOF
+    cat <<EOF
 
 VariantMedium pipeline launcher
 
@@ -37,28 +38,28 @@ USAGE:
 REQUIRED OPTIONS:
   --samplesheet        PATH        Path to the input CSV/TSV samplesheet
   --outdir             PATH        Output directory for all pipeline results
-  --profile            STRING      Nextflow profile name (e.g. conda, singularity) [default: conda]
+  --profile            STRING      Nextflow profile name (conda, singularity) [default: conda]
 
 OPTIONAL:
-  --data_staging       True|False  Whether to stage data before running (default: True)
-  --skip_preprocessing True|False  Skip BAM preprocessing step (default: False)
+  --skip_data_staging             Skip staging reference data & models
+  --skip_preprocessing            Skip BAM preprocessing step
 
 GENERAL:
-  -h, --help                       Show this help message and exit
+  -h, --help                      Show this help message and exit
 
 DESCRIPTION:
   Command-line wrapper to run VariantMedium pipeline steps:
-   1. Generate TSV inputs             - [VariantMedium prepare_tsv_inputs]
-   2. Stage reference data & models   - [VariantMedium stage_data]
-   3. BAM preprocessing               - [tronflow-bam-preprocessing]
-   4. Candidate calling (Strelka2)    - [tronflow-strelka2]
-   5. Feature generation              - [tronflow-vcf-postprocessing]
-   6. ExtraTrees candidate filtering  - [VariantMedium candidate filtering]
-   7. Tensor generation (bam2tensor)  - [bam2tensor]
-   8. 3D DenseNet variant calling     - [VariantMedium DenseNet calling (snv & indel)]
+   1. Generate TSV inputs
+   2. Stage reference data & models
+   3. BAM preprocessing
+   4. Candidate calling (Strelka2)
+   5. Feature generation
+   6. ExtraTrees candidate filtering
+   7. Tensor generation (bam2tensor)
+   8. 3D DenseNet variant calling (SNV & INDEL)
 
 EOF
-exit 0
+    exit 0
 }
 
 #---------------------------------------
@@ -68,19 +69,19 @@ exit 0
 SAMPLESHEET=""
 OUTDIR=""
 PROFILE="conda"
-DATA_STAGING="True"
-SKIP_PREPROCESSING="False"
+SKIP_DATA_STAGING=false
+SKIP_PREPROCESSING=false
 
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --samplesheet) SAMPLESHEET="$2"; shift 2;;
-    --outdir) OUTDIR="$2"; shift 2;;
-    --profile) PROFILE="$2"; shift 2;;
-    --data_staging) DATA_STAGING="$2"; shift 2;;
-    --skip_preprocessing) SKIP_PREPROCESSING="$2"; shift 2;;
-    -h|--help) usage;;
-    *) die "Unknown argument: $1";;
-  esac
+    case "$1" in
+        --samplesheet) SAMPLESHEET="$2"; shift 2;;
+        --outdir) OUTDIR="$2"; shift 2;;
+        --profile) PROFILE="$2"; shift 2;;
+        --skip_data_staging) SKIP_DATA_STAGING=true; shift;;
+        --skip_preprocessing) SKIP_PREPROCESSING=true; shift;;
+        -h|--help) usage;;
+        *) die "Unknown argument: $1";;
+    esac
 done
 
 #---------------------------------------
@@ -88,164 +89,194 @@ done
 #---------------------------------------
 
 [[ -z "$SAMPLESHEET" ]] && die "--samplesheet is required"
-[[ -z "$OUTDIR" ]]      && die "--outdir is required"
-[[ -z "$PROFILE" ]]     && die "--profile is required"
-
 [[ -f "$SAMPLESHEET" ]] || die "Samplesheet does not exist: $SAMPLESHEET"
+[[ -z "$OUTDIR" ]] && die "--outdir is required"
+
+log "Samplesheet: $SAMPLESHEET"
+log "Output directory: $OUTDIR"
+log "Profile: $PROFILE"
+log "Skip data staging: $SKIP_DATA_STAGING"
+log "Skip BAM preprocessing: $SKIP_PREPROCESSING"
 
 mkdir -p "$OUTDIR"
+PIPE_LOG="${OUTDIR}/pipeline.log"
+: > "$PIPE_LOG"  # clear previous log
 
 #---------------------------------------
 # Derived paths
 #---------------------------------------
 
 TSV_FOLDER="${OUTDIR}/tsv_folder"
+REF_DIR="${OUTDIR}/data_staging/ref_data"
+REF="${REF_DIR}/GRCh38.d1.vd1.fa"
+EXOME_BED="${REF_DIR}/S07604624_Covered.bed.gz"
+DBSNP="${REF_DIR}/dbsnp_146.hg38.vcf.gz"
+KNOWN_INDELS1="${REF_DIR}/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz"
 
-#---------------------------------------
-# Output directories
-#---------------------------------------
-
-run_step "Creating output directories" \
-  mkdir -p \
+mkdir -p \
     "${OUTDIR}/output_01_01_preprocessed_bams" \
     "${OUTDIR}/output_01_02_candidates_strelka2" \
     "${OUTDIR}/output_01_03_vcf_postprocessing" \
-    "${OUTDIR}/output_01_04_candidates_extratrees/Production_Model" \
+    "${OUTDIR}/output_01_04_candidates_extratrees" \
     "${OUTDIR}/output_01_05_tensors" \
     "${OUTDIR}/output_01_06_calls_densenet"
 
 #---------------------------------------
-# 0. Prepare input files
+# 1. Prepare TSV input files
 #---------------------------------------
 
-run_step "Generating required TSV input files" \
-  nextflow run tron-bioinformatics/VariantMedium \
-    -profile ${PROFILE} \
-    --samplesheet "${SAMPLESHEET}" \
-    --outdir "${OUTDIR}" \
-    --execution_step prepare_tsv_inputs \
-    --skip_preprocessing "${SKIP_PREPROCESSING}"
+CMD=(nextflow run main.nf
+    -profile "${PROFILE}"
+    --samplesheet "${SAMPLESHEET}"
+    --outdir "${OUTDIR}"
+    --execution_step generate_tsv_files
+)
+
+$SKIP_PREPROCESSING && CMD+=(--skip_preprocessing)
+CMD+=(-resume)
+
+run_step "Generating TSV input files" "${CMD[@]}"
 
 #---------------------------------------
-# 1. BAM preprocessing
+# 2. Stage reference data & models
 #---------------------------------------
 
-if [[ "$SKIP_PREPROCESSING" == "True" ]]; then
-  log "⚠️ Skipping BAM preprocessing."
+if [[ "$SKIP_DATA_STAGING" == true ]]; then
+    log "⚠️ Skipping data staging"
 else
-  cd "${OUTDIR}/output_01_01_preprocessed_bams"
+    CMD=(nextflow run main.nf
+        -profile "${PROFILE}"
+        --samplesheet "${SAMPLESHEET}"
+        --outdir "${OUTDIR}"
+        --execution_step stage_data
+    )
+    $SKIP_PREPROCESSING && CMD+=(--skip_preprocessing)
+    CMD+=(-resume)
 
-  run_step "BAM preprocessing (tronflow-bam-preprocessing)" \
-    nextflow run tron-bioinformatics/tronflow-bam-preprocessing \
-      -r v2.1.0 \
-      -profile ${PROFILE} \
-      --input_files "${TSV_FOLDER}/preproc.tsv" \
-      --reference "${REF}" \
-      --intervals "${EXOME_BED}" \
-      --dbsnp "${DBSNP}" \
-      --known_indels1 "${KNOWN_INDELS1}" \
-      --output "${OUTDIR}/output_01_01_preprocessed_bams" \
-      --skip_deduplication \
-      --skip_metrics \
-      -resume \
-      -with-report \
-      -with-trace
+    run_step "Staging reference data and models" "${CMD[@]}"
 fi
 
 #---------------------------------------
-# 2. Candidate calling (Strelka2)
+# 3. BAM preprocessing
 #---------------------------------------
 
-cd "${OUTDIR}/output_01_02_candidates_strelka2"
+if [[ "$SKIP_PREPROCESSING" == true ]]; then
+    log "⚠️ Skipping BAM preprocessing"
+else
+    pushd "${OUTDIR}/output_01_01_preprocessed_bams" >/dev/null
+
+    CMD=(nextflow run tron-bioinformatics/tronflow-bam-preprocessing
+        -r v2.1.0
+        -profile "${PROFILE}"
+        --input_files "${TSV_FOLDER}/preproc.tsv"
+        --reference "${REF}"
+        --intervals "${EXOME_BED}"
+        --dbsnp "${DBSNP}"
+        --known_indels1 "${KNOWN_INDELS1}"
+        --output "${OUTDIR}/output_01_01_preprocessed_bams"
+        --skip_deduplication
+        --skip_metrics
+        -resume
+        -with-report
+        -with-trace
+    )
+
+    run_step "BAM preprocessing" "${CMD[@]}"
+    popd >/dev/null
+fi
+
+#---------------------------------------
+# 4. Candidate calling (Strelka2)
+#---------------------------------------
+
+pushd "${OUTDIR}/output_01_02_candidates_strelka2" >/dev/null
+
 INTERVALS_PARAM=()
-[[ -n "${EXOME_BED:-}" ]] && INTERVALS_PARAM=(--intervals "${EXOME_BED}")
+[[ -f "$EXOME_BED" ]] && INTERVALS_PARAM=(--intervals "$EXOME_BED")
 
-run_step "Running Strelka2 (tronflow-strelka2)" \
-  nextflow run tron-bioinformatics/tronflow-strelka2 \
-    -r v0.2.4 \
-    -profile ${PROFILE} \
-    --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv" \
-    --reference "${REF}" \
-    --output "${OUTDIR}/output_01_02_candidates_strelka2" \
-    "${INTERVALS_PARAM[@]}" \
-    -resume \
-    -with-report \
+CMD=(nextflow run tron-bioinformatics/tronflow-strelka2
+    -r v0.2.4
+    -profile "${PROFILE}"
+    --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv"
+    --reference "${REF}"
+    --output "${OUTDIR}/output_01_02_candidates_strelka2"
+)
+CMD+=("${INTERVALS_PARAM[@]}")
+CMD+=(-resume -with-report -with-trace)
+
+run_step "Candidate calling (Strelka2)" "${CMD[@]}"
+popd >/dev/null
+
+#---------------------------------------
+# 5. Feature generation
+#---------------------------------------
+
+CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
+    -r v3.1.2
+    -profile "${PROFILE}"
+    --input_vcfs "${TSV_FOLDER}/vcfs.tsv"
+    --input_bams "${TSV_FOLDER}/bams.tsv"
+    --reference "${REF}"
+    --output "${OUTDIR}/output_01_03_vcf_postprocessing"
+    -resume -with-report -with-trace
+)
+
+run_step "Feature generation" "${CMD[@]}"
+
+#---------------------------------------
+# 6. ExtraTrees candidate filtering
+#---------------------------------------
+
+CMD=(nextflow run main.nf
+    -profile "${PROFILE}"
+    --samplesheet "${SAMPLESHEET}"
+    --outdir "${OUTDIR}/output_01_04_candidates_extratrees"
+    --execution_step filter_candidates
+    -with-report
     -with-trace
+)
+run_step "ExtraTrees candidate filtering" "${CMD[@]}"
 
 #---------------------------------------
-# 3. Feature generation
+# 7. Tensor generation
 #---------------------------------------
 
-run_step "Feature generation (tronflow-vcf-postprocessing)" \
-  nextflow run tron-bioinformatics/tronflow-vcf-postprocessing \
-    -r v3.1.2 \
-    -profile ${PROFILE} \
-    --input_vcfs "${TSV_FOLDER}/vcfs.tsv" \
-    --input_bams "${TSV_FOLDER}/bams.tsv" \
-    --reference "${REF}" \
-    --output "${OUTDIR}/output_01_03_vcf_postprocessing" \
-    -resume \
-    -with-report \
+pushd "${OUTDIR}/output_01_05_tensors" >/dev/null
+
+CMD=(nextflow run tron-bioinformatics/bam2tensor
+    -r 1.0.2
+    -profile "${PROFILE}"
+    --input_files "${TSV_FOLDER}/pairs_w_cands.tsv"
+    --publish_dir "${OUTDIR}/output_01_05_tensors"
+    --reference "${REF}"
+    --window 150
+    --max_coverage 500
+    --read_length 50
+    --max_mapq 60
+    --max_baseq 82
+    -with-report
     -with-trace
+)
+
+run_step "Tensor generation" "${CMD[@]}"
+popd >/dev/null
 
 #---------------------------------------
-# 4. Extra Trees filtering
+# 8. 3D DenseNet variant calling
 #---------------------------------------
 
-cd "${OUTDIR}/output_01_04_candidates_extratrees"
+pushd "${OUTDIR}/output_01_06_calls_densenet" >/dev/null
 
-run_step "Filtering candidates with Extra Trees" \
-  python3 "${CODE_FOLDER}/src/filter_candidates/filter.py" \
-    -i "${TSV_FOLDER}/samples_w_cands.tsv" \
-    -m "${CODE_FOLDER}/models/extra_trees.{}.joblib" \
-    -o "${OUTDIR}/output_01_04_candidates_extratrees/{}/{}_{}.tsv"
-
-#---------------------------------------
-# 5. Tensor generation
-#---------------------------------------
-
-cd "${OUTDIR}/output_01_05_tensors"
-
-run_step "Tensor generation (bam2tensor)" \
-  nextflow run tron-bioinformatics/bam2tensor \
-    -r 1.0.2 \
-    -profile ${PROFILE} \
-    --input_files "${TSV_FOLDER}/pairs_w_cands.tsv" \
-    --publish_dir "${OUTDIR}/output_01_05_tensors" \
-    --reference "${REF}" \
-    --window 150 \
-    --max_coverage 500 \
-    --read_length 50 \
-    --max_mapq 60 \
-    --max_baseq 82 \
-    -with-report \
+CMD=(nextflow run main.nf
+    -profile "${PROFILE}"
+    --samplesheet "${SAMPLESHEET}"
+    --outdir "${OUTDIR}/output_01_06_calls_densenet"
+    --execution_step call_variants
+    -with-report
     -with-trace
+)
 
-#---------------------------------------
-# 6. DenseNet SNV/Indel calling
-#---------------------------------------
-
-cd "${OUTDIR}/output_01_06_calls_densenet"
-
-run_step "3D DenseNet SNV calling" \
-  python -u "${CODE_FOLDER}/src/run.py" call \
-    --home_folder "${OUTDIR}/output_01_05_tensors/" \
-    --pretrained_model "${CODE_FOLDER}/models/3ddensenet_snv.pt" \
-    --prediction_mode somatic_snv \
-    --out_path "${OUTDIR}/output_01_06_calls_densenet"
-
-run_step "3D DenseNet INDEL calling" \
-  python -u "${CODE_FOLDER}/src/run.py" call \
-    --home_folder "${OUTDIR}/output_01_05_tensors/" \
-    --pretrained_model "${CODE_FOLDER}/models/3ddensenet_indel.pt" \
-    --prediction_mode somatic_indel \
-    --out_path "${OUTDIR}/output_01_06_calls_densenet"
-
-#---------------------------------------
-# 7. Final output collection
-#---------------------------------------
-
-run_step "Copying final SNV/VCF outputs" \
-  cp "${OUTDIR}/output_01_06_calls_densenet/"*.somatic_snv.VariantMedium.{tsv,vcf} "${OUTDIR}/"
+run_step "3D DenseNet SNV/Indel calling" "${CMD[@]}"
+popd >/dev/null
 
 log "🎉 Pipeline completed successfully!"
