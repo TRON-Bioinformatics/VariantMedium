@@ -122,3 +122,10 @@ work
 report-*
 trace-*
 
+# variantmedium
+*.pt
+*.joblib
+ref/
+*.tsv
+slurm_*
+logs/

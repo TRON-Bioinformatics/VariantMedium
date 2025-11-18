@@ -3,12 +3,12 @@ import numpy as np
 import pandas as pd
 from joblib import dump
 
-from extra_trees_functions import read_and_fit, compute_metrics, \
+from filter_candidates.extra_trees_functions import read_and_fit, compute_metrics, \
     apply_threshold
-from constants import *
-from constants_ml_snv import *
-from constants_ml_indel import *
-from extra_trees_io import get_all_dfs, save_results
+from filter_candidates.constants import *
+from filter_candidates.constants_ml_snv import *
+from filter_candidates.constants_ml_indel import *
+from filter_candidates.extra_trees_io import get_all_dfs, save_results
 
 
 def main():

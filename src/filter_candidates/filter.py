@@ -3,11 +3,11 @@ import pandas as pd
 
 from joblib import load
 
-from constants_ml_snv import *
-from constants_ml_indel import *
-from extra_trees_functions import apply_threshold
-from extra_trees_io import save_results, get_df, query_vcf_to_tsv
-from main import filter_simple
+from filter_candidates.constants_ml_snv import *
+from filter_candidates.constants_ml_indel import *
+from filter_candidates.extra_trees_functions import apply_threshold
+from filter_candidates.extra_trees_io import save_results, get_df, query_vcf_to_tsv
+from filter_candidates.main import filter_simple
 
 
 def filter(
@@ -106,45 +106,3 @@ def workflow_call(
     df = filter_simple(df)
     print('{:7} {:7}'.format(len_before, len(df[df['EXTRATREES_CALL'] == 1])))
     return df
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        prog='Extra trees filtering',
-        description='ML based filtering method to remove unlikely somatic variants',
-    )
-    parser.add_argument('-i', '--input_files', type=str)
-    parser.add_argument('-o', '--output', type=str)
-    parser.add_argument('-m', '--model', type=str)
-    args = parser.parse_args()
-
-    df = pd.read_csv(
-        args.input_files, sep='\t', header=None
-    )
-
-    filter(
-        df,
-        args.model,
-        args.output,
-        False
-    )
-    filter(
-        df,
-        args.model,
-        args.output,
-        True
-    )
-
-    for sample in df[0].unique():
-        df_snv = pd.read_csv(
-            args.output.format('Production_Model', sample, 'snv'), sep='\t')
-        df_indel = pd.read_csv(
-            args.output.format('Production_Model', sample, 'indel'), sep='\t')
-        df_all = pd.concat([df_snv, df_indel])
-        fname = args.output.format('Production_Model', sample, '')
-        fname = fname.replace('_.tsv', '.tsv')
-        df_all.to_csv(
-            fname,
-            sep='\t',
-            index=False
-        )

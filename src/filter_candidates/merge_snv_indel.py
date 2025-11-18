@@ -2,8 +2,8 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from constants import *
-from constants_ml_snv import SETS_SNV
+from filter_candidates.constants import *
+from filter_candidates.constants_ml_snv import SETS_SNV
 
 
 def main():

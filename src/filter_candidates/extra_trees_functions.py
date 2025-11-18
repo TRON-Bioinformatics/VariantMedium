@@ -7,8 +7,8 @@ from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
 from sklearn.model_selection import GridSearchCV
 
-from constants import ESSENTIAL_COLUMNS
-from extra_trees_io import get_all_dfs
+from filter_candidates.constants import ESSENTIAL_COLUMNS
+from filter_candidates.extra_trees_io import get_all_dfs
 
 pd.options.mode.chained_assignment = None
 
