@@ -1,3 +1,0 @@
-sample_name,pair_identifier,tumor_bam,normal_bam
-sample1,1,/path/to/sample1_normal.bam,/path/to/sample1_tumor.bam
-sample2,1,/path/to/sample2_normal.bam,/path/to/sample2_tumor.bam
