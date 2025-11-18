@@ -1,2 +1,3 @@
 sample_name,pair_identifier,tumor_bam,normal_bam
-WES_LL_1,1,/scratch/info/projects/SUMMIT/WP1.1/mutations/variantmedium-workflow/output_01_01_preprocessed_bams/WES_LL_1_1_normal/WES_LL_1_1_normal.preprocessed.bam,/scratch/info/projects/SUMMIT/WP1.1/mutations/variantmedium-workflow/output_01_01_preprocessed_bams/WES_LL_1_1_tumor/WES_LL_1_1_tumor.preprocessed.bam
+sample1,1,/path/to/sample1_normal.bam,/path/to/sample1_tumor.bam
+sample2,1,/path/to/sample2_normal.bam,/path/to/sample2_tumor.bam

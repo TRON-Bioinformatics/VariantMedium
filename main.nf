@@ -68,13 +68,13 @@ workflow {
         ch_home_folder           = channel.fromPath("${params.outdir}/output_01_05_tensors")
         ch_output_path           = channel.fromPath("${params.outdir}/output_01_06_calls_densenet")
         ch_pretrained_model_snv  = channel.fromPath("${params.outdir}/data_staging/models/3ddensenet_snv.pt", checkIfExists: true)
-        ch_predicted_model_indel = channel.fromPath("${params.outdir}/data_staging/models/3ddensenet_indel.pt", checkIfExists: true)
+        ch_pretrained_model_indel = channel.fromPath("${params.outdir}/data_staging/models/3ddensenet_indel.pt", checkIfExists: true)
 
         VARIANTMEDIUM_CALL_VARIANTS (
             ch_home_folder,
             ch_output_path,
             ch_pretrained_model_snv,
-            ch_predicted_model_indel,
+            ch_pretrained_model_indel,
         )
     }
 }

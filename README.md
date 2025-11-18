@@ -24,15 +24,50 @@ bash build.sh config.conf
 ## Usage
 
 First, you will need to state the paths to your tumor-normal BAM pairs in a tab separated file in
-the following format **without header**. All fields are in string format, so you are free to choose
-the name and replicate_pair_identifier as long as they make a unique tuple.
+the following format **with header**. All fields are in string format, so you are free to choose
+the name and pair_identifier as long as they make a unique tuple.
 
-| sample name  | replicate pair identifier | tumor bam path  | normal bam path |
-|--------|-----------------------------|-------------------|-------------------|
-| sample_1  | rep_1 | tumor_1.bam  | normal_1.bam |
-| sample_2  | rep_2 | tumor_2.bam  | normal_2.bam |
+| sample_name | pair_identifier | tumor_bam                   | normal_bam                 |
+| ----------- | --------------- | --------------------------- | -------------------------- |
+| sample1     | 1               | /path/to/sample1_normal.bam | /path/to/sample1_tumor.bam |
+| sample2     | 1               | /path/to/sample2_normal.bam | /path/to/sample2_tumor.bam |
 
-Define the following variables in `config.conf`:
+### Command line pipeline launcher
+```
+VariantMedium pipeline launcher
+
+USAGE:
+  variantmedium.sh [OPTIONS]
+
+REQUIRED ARGUMENTS:
+  --samplesheet        PATH        Path to the input CSV/TSV samplesheet
+  --outdir             PATH        Output directory for all pipeline results
+  --profile            STRING      Nextflow profile name (conda, singularity) [default: conda]
+                                   [Parts of the pipeline may not support singularity - Prefer using conda]
+  --config             PATH        Path to custom config file (.conf)
+
+OPTIONAL ARGUMENTS:
+  --skip_data_staging             Skip staging reference data & models
+  --skip_preprocessing            Skip BAM preprocessing step
+  --nf_report                     Generate Nextflow execution report
+  --nf_trace                      Generate Nextflow execution trace
+
+GET HELP:
+  -h, --help                      Show this help message and exit
+
+DESCRIPTION:
+  Command-line wrapper to run VariantMedium pipeline steps:
+   1. Generate TSV inputs                       -> [VariantMedium generate_tsv_files step]
+   2. Stage reference data & models             -> [VariantMedium stage_data step]
+   3. BAM preprocessing                         -> [tronflow-bam-preprocessing]
+   4. Candidate calling (Strelka2)              -> [tronflow-strelka2]
+   5. Feature generation                        -> [tronflow-vcf-postprocessing]
+   6. ExtraTrees candidate filtering            -> [VariantMedium filter_candidates step]
+   7. Tensor generation (bam2tensor)            -> [bam2tensor]
+   8. 3D DenseNet variant calling (SNV & INDEL) -> [VariantMedium call_variants step]
+```
+
+Define the following variables in `config.conf`(optional):
 
 - `CODE_FOLDER` Directory of the VariantMedium source code
 - `ENV_FOLDER` Directory for conda envirnments
@@ -43,6 +78,7 @@ Define the following variables in `config.conf`:
 - `DBSNP` dbDNP VCF file for BAM preprocessing pipeline
 - `REF` Reference genome
 - `EXOME_BED` Target region defintion as BED file (e.g. exome) - Leave empty ("") if calling in WGS
+
 
 If you need to apply BAM-Preprocessing and need the resource files, you can
 download the full reference data for the human genome hg38, run 'sh download_ref.sh` and use

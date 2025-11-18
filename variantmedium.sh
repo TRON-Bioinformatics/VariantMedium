@@ -35,17 +35,20 @@ VariantMedium pipeline launcher
 USAGE:
   $(basename "$0") [OPTIONS]
 
-REQUIRED OPTIONS:
+REQUIRED ARGUMENTS:
   --samplesheet        PATH        Path to the input CSV/TSV samplesheet
   --outdir             PATH        Output directory for all pipeline results
   --profile            STRING      Nextflow profile name (conda, singularity) [default: conda]
+                                   [Parts of the pipeline may not support singularity - Prefer using conda]
   --config             PATH        Path to custom config file (.conf)
 
-OPTIONAL:
+OPTIONAL ARGUMENTS:
   --skip_data_staging             Skip staging reference data & models
   --skip_preprocessing            Skip BAM preprocessing step
+  --nf_report                     Generate Nextflow execution report
+  --nf_trace                      Generate Nextflow execution trace
 
-GENERAL:
+GET HELP:
   -h, --help                      Show this help message and exit
 
 DESCRIPTION:
@@ -73,6 +76,9 @@ PROFILE="conda"
 SKIP_DATA_STAGING=false
 SKIP_PREPROCESSING=false
 CONFIG_FILE=""
+MOUNT_PATH=""
+NF_REPORT=""
+NF_TRACE=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -80,8 +86,11 @@ while [[ $# -gt 0 ]]; do
         --outdir) OUTDIR="$2"; shift 2;;
         --profile) PROFILE="$2"; shift 2;;
         --config) CONFIG_FILE="$2"; shift 2;;
+        --mount_path) MOUNT_PATH="$2"; shift 2;;
         --skip_data_staging) SKIP_DATA_STAGING=true; shift;;
         --skip_preprocessing) SKIP_PREPROCESSING=true; shift;;
+        --nf_report) NF_REPORT="-with-report"; shift;;
+        --nf_trace) NF_TRACE="-with-trace"; shift;;
         -h|--help) usage;;
         *) die "Unknown argument: $1";;
     esac
@@ -94,6 +103,19 @@ done
 [[ -z "$SAMPLESHEET" ]] && die "--samplesheet is required"
 [[ -f "$SAMPLESHEET" ]] || die "Samplesheet does not exist: $SAMPLESHEET"
 [[ -z "$OUTDIR" ]] && die "--outdir is required"
+
+#---------------------------------------
+# mount path check
+#---------------------------------------
+if [[ "$PROFILE" == "singularity" ]]; then
+    if [[ -z "$MOUNT_PATH" ]]; then
+        die "Profile 'singularity' requires --mount_path to be provided."
+    fi
+    if [[ ! -d "$MOUNT_PATH" ]]; then
+        die "Mount path does not exist: $MOUNT_PATH"
+    fi
+    log "Using Singularity mount path: $MOUNT_PATH"
+fi
 
 # ------------------------------
 # Load config file if provided
@@ -108,13 +130,13 @@ if [[ -n "$CONFIG_FILE" ]]; then
 fi
 
 #---------------------------------------
-log ""
-log "Samplesheet: $SAMPLESHEET"
-log "Output directory: $OUTDIR"
-log "Profile: $PROFILE"
-log "Skip data staging: $SKIP_DATA_STAGING"
-log "Skip BAM preprocessing: $SKIP_PREPROCESSING"
-log ""
+log "---------------------------------------"
+log "Samplesheet            : $SAMPLESHEET"
+log "Output directory       : $OUTDIR"
+log "Profile                : $PROFILE"
+log "Skip data staging      : $SKIP_DATA_STAGING"
+log "Skip BAM preprocessing : $SKIP_PREPROCESSING"
+log "---------------------------------------"
 #---------------------------------------
 
 mkdir -p "$OUTDIR"
@@ -152,6 +174,7 @@ CMD=(nextflow run main.nf
 )
 
 $SKIP_PREPROCESSING && CMD+=(--skip_preprocessing)
+[[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
 CMD+=(-resume)
 
 run_step "Generating TSV input files" "${CMD[@]}"
@@ -168,8 +191,11 @@ else
         --samplesheet "${SAMPLESHEET}"
         --outdir "${OUTDIR}"
         --execution_step stage_data
+        $NF_REPORT
+        $NF_TRACE
     )
     $SKIP_PREPROCESSING && CMD+=(--skip_preprocessing)
+    [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
     CMD+=(-resume)
 
     run_step "Staging reference data and models" "${CMD[@]}"
@@ -196,8 +222,8 @@ else
         --skip_deduplication
         --skip_metrics
         -resume
-        -with-report
-        -with-trace
+        $NF_REPORT
+        $NF_TRACE
     )
 
     run_step "BAM preprocessing" "${CMD[@]}"
@@ -208,38 +234,42 @@ fi
 # 4. Candidate calling (Strelka2)
 #---------------------------------------
 
-# pushd "${OUTDIR}/output_01_02_candidates_strelka2" >/dev/null
+pushd "${OUTDIR}/output_01_02_candidates_strelka2" >/dev/null
 
-# INTERVALS_PARAM=()
-# [[ -f "$EXOME_BED" ]] && INTERVALS_PARAM=(--intervals "$EXOME_BED")
+INTERVALS_PARAM=()
+[[ -f "$EXOME_BED" ]] && INTERVALS_PARAM=(--intervals "$EXOME_BED")
 
-# CMD=(nextflow run tron-bioinformatics/tronflow-strelka2
-#     -r v0.2.4
-#     -profile "${PROFILE}"
-#     --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv"
-#     --reference "${REF}"
-#     --output "${OUTDIR}/output_01_02_candidates_strelka2"
-# )
-# CMD+=("${INTERVALS_PARAM[@]}")
-# CMD+=(-resume -with-report -with-trace)
+CMD=(nextflow run tron-bioinformatics/tronflow-strelka2
+    -r v0.2.4
+    -profile "${PROFILE}"
+    --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv"
+    --reference "${REF}"
+    --output "${OUTDIR}/output_01_02_candidates_strelka2"
+    $NF_REPORT
+    $NF_TRACE
+)
+CMD+=("${INTERVALS_PARAM[@]}")
+CMD+=(-resume)
 
-# run_step "Candidate calling (Strelka2)" "${CMD[@]}"
-# popd >/dev/null
+run_step "Candidate calling (Strelka2)" "${CMD[@]}"
+popd >/dev/null
 
 #---------------------------------------
 # 5. Feature generation
 #---------------------------------------
 
-# CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
-#     -r v3.1.2
-#     -profile "${PROFILE}"
-#     --input_vcfs "${TSV_FOLDER}/vcfs.tsv"
-#     --input_bams "${TSV_FOLDER}/bams.tsv"
-#     --reference "${REF}"
-#     --output "${OUTDIR}/output_01_03_vcf_postprocessing"
-# )
+CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
+    -r v3.1.2
+    -profile "${PROFILE}"
+    --input_vcfs "${TSV_FOLDER}/vcfs.tsv"
+    --input_bams "${TSV_FOLDER}/bams.tsv"
+    --reference "${REF}"
+    --output "${OUTDIR}/output_01_03_vcf_postprocessing"
+    $NF_REPORT
+    $NF_TRACE
+)
 
-# run_step "Feature generation" "${CMD[@]}"
+run_step "Feature generation" "${CMD[@]}"
 
 #---------------------------------------
 # 6. ExtraTrees candidate filtering
@@ -250,47 +280,55 @@ CMD=(nextflow run main.nf
     --samplesheet "${SAMPLESHEET}"
     --outdir "${OUTDIR}"
     --execution_step filter_candidates
+    $NF_REPORT
+    $NF_TRACE
 )
+[[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
 run_step "ExtraTrees candidate filtering" "${CMD[@]}"
 
 #---------------------------------------
 # 7. Tensor generation
 #---------------------------------------
 
-# pushd "${OUTDIR}/output_01_05_tensors" >/dev/null
+pushd "${OUTDIR}/output_01_05_tensors" >/dev/null
 
-# CMD=(nextflow run tron-bioinformatics/bam2tensor
-#     -r 1.0.2
-#     -profile "${PROFILE}"
-#     --input_files "${TSV_FOLDER}/pairs_w_cands.tsv"
-#     --publish_dir "${OUTDIR}/output_01_05_tensors"
-#     --reference "${REF}"
-#     --window 150
-#     --max_coverage 500
-#     --read_length 50
-#     --max_mapq 60
-#     --max_baseq 82
-# )
+CMD=(nextflow run tron-bioinformatics/bam2tensor
+    -r 1.0.2
+    -profile "${PROFILE}"
+    --input_files "${TSV_FOLDER}/pairs_w_cands.tsv"
+    --publish_dir "${OUTDIR}/output_01_05_tensors"
+    --reference "${REF}"
+    --window 150
+    --max_coverage 500
+    --read_length 50
+    --max_mapq 60
+    --max_baseq 82
+    $NF_REPORT
+    $NF_TRACE
+)
 
-# run_step "Tensor generation" "${CMD[@]}"
-# popd >/dev/null
+run_step "Tensor generation" "${CMD[@]}"
+popd >/dev/null
 
 #---------------------------------------
 # 8. 3D DenseNet variant calling
 #---------------------------------------
 
-# pushd "${OUTDIR}/output_01_06_calls_densenet" >/dev/null
+pushd "${OUTDIR}/output_01_06_calls_densenet" >/dev/null
 
-# CMD=(nextflow run main.nf
-#     -profile "${PROFILE}"
-#     --samplesheet "${SAMPLESHEET}"
-#     --outdir "${OUTDIR}/output_01_06_calls_densenet"
-#     --execution_step call_variants
-#     -with-report
-#     -with-trace
-# )
+CMD=(nextflow run main.nf
+    -profile "${PROFILE}"
+    --samplesheet "${SAMPLESHEET}"
+    --outdir "${OUTDIR}/output_01_06_calls_densenet"
+    --execution_step call_variants
+    $NF_REPORT
+    $NF_TRACE
+)
 
-# run_step "3D DenseNet SNV/Indel calling" "${CMD[@]}"
-# popd >/dev/null
+[[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
+run_step "3D DenseNet SNV/Indel calling" "${CMD[@]}"
+popd >/dev/null
 
+#---------------------------------------
 log "🎉 Pipeline completed successfully!"
+#---------------------------------------
