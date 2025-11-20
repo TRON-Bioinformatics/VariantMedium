@@ -5,6 +5,7 @@ include { VARIANTMEDIUM_STAGE_DATA        } from './workflows/variantmedium_stag
 include { VARIANTMEDIUM_FILTER_CANDIDATES } from './workflows/variantmedium_filter_candidates.nf'
 include { VARIANTMEDIUM_CALL_VARIANTS     } from './workflows/variantmedium_call_variants.nf'
 
+
 workflow {
 
     // ----------------------------------------
