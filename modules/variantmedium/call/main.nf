@@ -1,5 +1,4 @@
 process CALL_VARIANTS {
-    tag "-"
     label 'process_high'
 
     conda "${moduleDir}/environment.yml"
@@ -11,8 +10,10 @@ process CALL_VARIANTS {
     val(prediction_mode)
 
     output:
-    path ("./*.tsv"), emit: call_outs
-    path ("versions.yml"), emit: versions
+    path("*.{somatic,germline}_{snv,indel}.VariantMedium.{tsv,vcf}"), emit: call_outs
+    path("scores_{somatic,germline}_{snv,indel}.tsv")               , emit: score_outs
+    path("all_scores_{somatic,germline}_{snv,indel}.tsv")           , emit: all_score_outs
+    path("versions.yml"), emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -44,8 +45,18 @@ process CALL_VARIANTS {
 
     stub:
     """
-    mkdir -p ${out_path}/
-    touch "${out_path}/fake_file.txt"
+    touch fake.somatic_snv.VariantMedium.tsv
+    touch fake.germline_snv.VariantMedium.tsv
+    touch fake.somatic_indel.VariantMedium.tsv
+    touch fake.germline_indel.VariantMedium.tsv
+    touch fake.scores_somatic_snv.tsv
+    touch fake.scores_germline_snv.tsv
+    touch fake.scores_somatic_indel.tsv
+    touch fake.scores_germline_indel.tsv
+    touch fake.all_scores_somatic_snv.tsv
+    touch fake.all_scores_germline_snv.tsv
+    touch fake.all_scores_somatic_indel.tsv
+    touch fake.all_scores_germline_indel.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

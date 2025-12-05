@@ -18,7 +18,7 @@ workflow VARIANTMEDIUM_CALL_VARIANTS {
     if (params.snv_calling) {
         
         CALL_VARIANTS_SNV (
-            "${params.outdir}",
+            "${params.outdir}/output_01_05_tensors/",
             ch_pretrained_model_snv,
             "somatic_snv"
         )
@@ -30,7 +30,7 @@ workflow VARIANTMEDIUM_CALL_VARIANTS {
     if (params.indel_calling) {
         
         CALL_VARIANTS_INDEL (
-            "${params.outdir}",
+            "${params.outdir}/output_01_05_tensors/",
             ch_pretrained_model_indel,
             "somatic_indel"
         )

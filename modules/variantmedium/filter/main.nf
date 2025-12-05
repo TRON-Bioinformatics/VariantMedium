@@ -1,5 +1,4 @@
 process FILTER_CANDIDATES {
-    tag "-"
     label 'process_high'
 
     conda "${moduleDir}/environment.yml"
@@ -44,8 +43,8 @@ process FILTER_CANDIDATES {
 
     stub:
     """
-    mkdir -p ${output_dir}/
-    touch "${output_dir}/fake_file.tsv"
+    mkdir -p filtered_candidates/
+    touch "filtered_candidates/fake_file.tsv"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
