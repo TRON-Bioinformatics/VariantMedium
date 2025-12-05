@@ -134,3 +134,4 @@ samplesheet.csv
 run.conf
 strelka.config
 bam2tensor.config
+compare.py

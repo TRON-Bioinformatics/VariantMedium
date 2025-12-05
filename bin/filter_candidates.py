@@ -1,15 +1,8 @@
 #!/usr/bin/env python
 
-
-import sys
-import os
-
-# Add the src folder to Python module search path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-
 from src.filter_candidates.constants import PCAWG  # noqa: F401
 from src.filter_candidates import constants_ml_snv, constants_ml_indel, extra_trees_functions, extra_trees_io  # noqa: F401
-from src.filter_candidates.filter import filter as variant_filter
+from src.filter_candidates.candidate_filtering import filter_candidates as filter_variant_candidates
 import pandas as pd
 import argparse
 
@@ -31,7 +24,7 @@ if __name__ == '__main__':
     )
 
     if args.snv:
-        variant_filter(
+        filter_variant_candidates(
             df,
             args.model,
             args.output,
@@ -39,7 +32,7 @@ if __name__ == '__main__':
         )
     
     if args.indel:
-        variant_filter(
+        filter_variant_candidates(
             df,
             args.model,
             args.output,

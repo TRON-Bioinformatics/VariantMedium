@@ -1,4 +1,4 @@
-from filter_candidates.constants_ml_snv import SETS_SNV
+from src.filter_candidates.constants_ml_snv import SETS_SNV
 
 SETS_INDEL = {
     'COLO_829_Model': SETS_SNV['COLO_829_Model'],
