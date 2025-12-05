@@ -59,6 +59,17 @@ OPTIONAL ARGUMENTS:
   --bam2tensor_config         PATH        Path to custom bam2tensor config file
   -h, --help                              Show this help message and exit
 
+  DESCRIPTION:
+  Command-line wrapper to run VariantMedium pipeline steps:
+   1. Generate TSV inputs                       -> [VariantMedium generate_tsv_files step]
+   2. Stage reference data & models             -> [VariantMedium stage_data step]
+   3. BAM preprocessing                         -> [tronflow-bam-preprocessing]
+   4. Candidate calling (Strelka2)              -> [tronflow-strelka2]
+   5. Feature generation                        -> [tronflow-vcf-postprocessing]
+   6. ExtraTrees candidate filtering            -> [VariantMedium filter_candidates step]
+   7. Tensor generation (bam2tensor)            -> [bam2tensor]
+   8. 3D DenseNet variant calling (SNV & INDEL) -> [VariantMedium call_variants step]
+
 EOF
     exit 0
 }
@@ -236,7 +247,6 @@ fi
 #---------------------------------------
 # 3. BAM preprocessing
 #---------------------------------------
-
 if [[ "$SKIP_PREPROCESSING" == true ]]; then
     log "⚠️ Skipping BAM preprocessing"
 else
@@ -286,14 +296,14 @@ else
     CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
 
     # Include custom config only if provided
-    [[ -n "$STRELKA_CONFIG" ]] && CMD+=(-c "$STRELKA_CONFIG")
+    [[ -n "$STRELKA_CONFIG" ]] && CMD+=("-c" "$STRELKA_CONFIG")
 
     # Add optional intervals
     CMD+=("${INTERVALS_PARAM[@]}")
 
     # Resume and mount
     [[ -n "$RESUME" ]] && CMD+=("$RESUME")
-    [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
+    [[ -n "$MOUNT_PATH" ]] && CMD+=("--mount_path" "$MOUNT_PATH")
 
     run_step "Candidate calling (Strelka2)" "${CMD[@]}"
     popd >/dev/null
@@ -340,6 +350,7 @@ else
     [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
     run_step "ExtraTrees candidate filtering" "${CMD[@]}"
 fi
+
 #---------------------------------------
 # 7. Tensor generation
 #---------------------------------------
@@ -369,17 +380,15 @@ else
     run_step "Tensor generation" "${CMD[@]}"
     popd >/dev/null
 fi
+
 #---------------------------------------
 # 8. 3D DenseNet variant calling
 #---------------------------------------
-
-pushd "${OUTDIR}/output_01_06_calls_densenet" >/dev/null
-
 EXECUTION_STEP="call_variants"
 CMD=(nextflow run main.nf
     -profile "${PROFILE}"
     --samplesheet "${SAMPLESHEET}"
-    --outdir "${OUTDIR}/output_01_06_calls_densenet"
+    --outdir "${OUTDIR}"
     --execution_step "${EXECUTION_STEP}"
 )
 CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")

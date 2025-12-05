@@ -4,8 +4,8 @@ from collections import defaultdict
 import pandas as pd
 from typing import List, Text, Tuple, Dict
 
-from constants import *
-from dataloaders.annotated_tensor import AnnotatedTensor
+from src.constants import *
+from src.dataloaders.annotated_tensor import AnnotatedTensor
 
 logger = logging.getLogger(__name__)
 

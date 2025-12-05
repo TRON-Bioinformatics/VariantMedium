@@ -5,8 +5,6 @@ include { CALL_VARIANTS as CALL_VARIANTS_INDEL } from './../modules/variantmediu
 workflow VARIANTMEDIUM_CALL_VARIANTS {
 
     take:
-    ch_home_folder              // [path-to-bamtensors]
-    ch_output_path              // [path-to-output-folder]
     ch_pretrained_model_snv     // [path-to-pretrained-model-snv] 
     ch_pretrained_model_indel   // [path-to-pretrained-model-indel]
 
@@ -20,10 +18,9 @@ workflow VARIANTMEDIUM_CALL_VARIANTS {
     if (params.snv_calling) {
         
         CALL_VARIANTS_SNV (
-            ch_home_folder,
+            "${params.outdir}",
             ch_pretrained_model_snv,
-            "somatic_snv",
-            ch_output_path
+            "somatic_snv"
         )
         ch_called_snv = CALL_VARIANTS_SNV.out.call_outs
         ch_versions = ch_versions.mix(CALL_VARIANTS_SNV.out.versions)
@@ -33,10 +30,9 @@ workflow VARIANTMEDIUM_CALL_VARIANTS {
     if (params.indel_calling) {
         
         CALL_VARIANTS_INDEL (
-            ch_home_folder,
+            "${params.outdir}",
             ch_pretrained_model_indel,
-            "somatic_indel",
-            ch_output_path
+            "somatic_indel"
         )
         ch_called_indel = CALL_VARIANTS_INDEL.out.call_outs
         ch_versions = ch_versions.mix(CALL_VARIANTS_INDEL.out.versions)

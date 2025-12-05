@@ -9,10 +9,9 @@ process CALL_VARIANTS {
     path(home_folder)
     path(pretrained_model)
     val(prediction_mode)
-    val(out_path)
 
     output:
-    path ("${out_path}/"), emit: call_outs
+    path ("./*.tsv"), emit: call_outs
     path ("versions.yml"), emit: versions
 
     when:
@@ -22,12 +21,13 @@ process CALL_VARIANTS {
     def args = task.ext.args ?: ''
 
     """
-    run_variant_medium.py run \\
+    export PYTHONPATH="${projectDir}:\${PYTHONPATH:-}"
+
+    run_variant_medium.py call \\
         --home_folder ${home_folder} \\
         --unknown_strategy_call keep_as_false \\
         --pretrained_model ${pretrained_model} \\
         --prediction_mode ${prediction_mode} \\
-        --out_path ${out_path} \\
         --learning_rate ${params.learning_rate} \\
         --epoch ${params.epoch} \\
         --drop_rate ${params.drop_rate} \\

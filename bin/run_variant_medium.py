@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 
+import os
 import sys
 from pathlib import Path
 
-# Adds the parent folder (project root) to Python's module search path
-sys.path.append(str(Path(__file__).resolve().parents[1]))
+# Add the src folder to Python module search path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 import fire
 from src.run import Hyperparams

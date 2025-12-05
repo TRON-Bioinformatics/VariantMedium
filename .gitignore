@@ -129,3 +129,8 @@ ref/
 *.tsv
 slurm_*
 logs/
+null/
+samplesheet.csv
+run.conf
+strelka.config
+bam2tensor.config

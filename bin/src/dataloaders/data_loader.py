@@ -6,8 +6,8 @@ from collections import defaultdict
 from torch.utils.data import Dataset, DataLoader
 from typing import Dict
 
-from dataloaders.input_parsers import *
-from dataloaders.populator import populate
+from src.dataloaders.input_parsers import *
+from src.dataloaders.populator import populate
 
 # from variantmedium.run import Hyperparams
 

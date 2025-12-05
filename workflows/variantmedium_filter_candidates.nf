@@ -16,7 +16,9 @@ workflow VARIANTMEDIUM_FILTER_CANDIDATES {
 
     main:
 
-    ch_versions                = channel.empty()
+    ch_versions = channel.empty()
+    ch_filtered_candidates_indels = channel.empty()
+    ch_filtered_candidates_snvs   = channel.empty()
 
     // indel filtering
     if ( params.indel_calling ) {
@@ -24,6 +26,7 @@ workflow VARIANTMEDIUM_FILTER_CANDIDATES {
         FILTER_CANDIDATES_INDEL (
             ch_input_tsv,
             ch_model_extra_trees_indel,
+            'indel',
             ch_output_dir
         )
         ch_filtered_candidates_indels = FILTER_CANDIDATES_INDEL.out.filtered_candidates
@@ -36,6 +39,7 @@ workflow VARIANTMEDIUM_FILTER_CANDIDATES {
         FILTER_CANDIDATES_SNV (
             ch_input_tsv,
             ch_model_extra_trees_snv,
+            'snv',
             ch_output_dir
         )
         ch_filtered_candidates_snvs = FILTER_CANDIDATES_SNV.out.filtered_candidates

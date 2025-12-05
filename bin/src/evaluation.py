@@ -10,7 +10,7 @@ import sklearn.metrics as metrics
 import os
 from typing import List, Text, Dict
 
-from constants import *
+from src.constants import *
 
 logger = logging.getLogger(__name__)
 

@@ -8,17 +8,19 @@ process FILTER_CANDIDATES {
     input:
     path(input_tsv)
     path(model)
+    val(calling_type)
     val(output_dir)
 
     output:
     path("filtered_candidates/*.tsv"), emit: filtered_candidates
-    path("versions.yml")      , emit: versions
+    path("versions.yml"), emit: versions
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''
+    def call_type = "${calling_type}" == 'snv' ? '--snv' : '--indel'
     
     """
     export PYTHONPATH="${projectDir}:\${PYTHONPATH:-}"
@@ -29,6 +31,7 @@ process FILTER_CANDIDATES {
         -i ${input_tsv} \
         -o ${output_dir} \
         -m ${model} \
+        ${call_type} \
         ${args}
 
     mv *.tsv filtered_candidates/

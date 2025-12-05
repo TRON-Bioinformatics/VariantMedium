@@ -49,7 +49,7 @@ workflow {
     if (params.execution_step == "filter_candidates") {
 
         ch_tsv_input = channel.fromPath("${params.outdir}/tsv_folder/samples_w_cands.tsv", checkIfExists: true)
-        ch_outdir = channel.fromPath("${params.outdir}/output_01_04_candidates_extratrees")
+        ch_outdir = channel.fromPath("${params.outdir}/output_01_04_candidates_extratrees/{}/{}_{}.tsv")
         ch_model_extra_tress_snv = channel.fromPath("${params.outdir}/data_staging/models/extra_trees.snv.joblib", checkIfExists: true)
         ch_model_extra_tress_indel = channel.fromPath("${params.outdir}/data_staging/models/extra_trees.indel.joblib", checkIfExists: true)
             
@@ -72,8 +72,8 @@ workflow {
         ch_pretrained_model_indel = channel.fromPath("${params.outdir}/data_staging/models/3ddensenet_indel.pt", checkIfExists: true)
 
         VARIANTMEDIUM_CALL_VARIANTS (
-            ch_home_folder,
-            ch_output_path,
+            // ch_home_folder,
+            // ch_output_path,
             ch_pretrained_model_snv,
             ch_pretrained_model_indel,
         )
