@@ -165,7 +165,7 @@ fi
 TSV_FOLDER="${OUTDIR}/tsv_folder"
 REF_DIR="${OUTDIR}/data_staging/ref_data"
 REF="${REF_DIR}/GRCh38.d1.vd1.fa"
-EXOME_BED="${REF_DIR}/S07604624_Covered.bed.gz"
+EXOME_BED="${REF_DIR}/S07604624_Covered_human_all_v6_plus_UTR.liftover.to.hg38.sorted.bed.gz"
 DBSNP="${REF_DIR}/dbsnp_146.hg38.vcf.gz"
 KNOWN_INDELS1="${REF_DIR}/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz"
 

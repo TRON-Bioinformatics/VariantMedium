@@ -1,5 +1,5 @@
 process CALL_VARIANTS {
-    label 'process_high'
+    label 'process_high_memory'
 
     conda "${moduleDir}/environment.yml"
     container "https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/a7/a73b7de4a8d00029f69b6cef20b74e1a1d6b48c1d7d5a65b5e55cf09c3fe6ce7/data"
@@ -22,8 +22,6 @@ process CALL_VARIANTS {
     def args = task.ext.args ?: ''
 
     """
-    export PYTHONPATH="${projectDir}:\${PYTHONPATH:-}"
-
     run_variant_medium.py call \\
         --home_folder ${home_folder} \\
         --unknown_strategy_call keep_as_false \\

@@ -40,22 +40,29 @@ USAGE:
   variantmedium.sh [OPTIONS]
 
 REQUIRED ARGUMENTS:
-  --samplesheet        PATH        Path to the input CSV/TSV samplesheet
-  --outdir             PATH        Output directory for all pipeline results
-  --profile            STRING      Nextflow profile name (conda, singularity) [default: conda]
-                                   [Parts of the pipeline may not support singularity - Prefer using conda]
-  --config             PATH        Path to custom config file (.conf)
-
+  --samplesheet               PATH        Path to the input CSV/TSV samplesheet
+  --outdir                    PATH        Output directory for all pipeline results
+  --profile                   STRING      Nextflow profile name (conda, singularity) [default: conda]
+                                          [Parts of the pipeline may not support singularity - Prefer using conda]
 OPTIONAL ARGUMENTS:
-  --skip_data_staging             Skip staging reference data & models
-  --skip_preprocessing            Skip BAM preprocessing step
-  --nf_report                     Generate Nextflow execution report
-  --nf_trace                      Generate Nextflow execution trace
+  --config                    PATH        Path to custom config file (.conf)
+  --mount_path                PATH        Path to mount when using singularity profile [required for the singularity profile]
+  --skip_data_staging                     Skip staging reference data & models
+  --skip_preprocessing                    Skip BAM preprocessing step
+  --skip_candidate_calling                Skip candidate calling step (if already generated VCFs are available)
+  --skip_feature_generation               Skip VCF postprocessing / feature generation step (if already generated features are available)
+  --skip_candidate_filtering              Skip ExtraTrees candidate filtering step (if already filtered candidates are available)
+  --skip_tensor_generation                Skip tensor generation (if already generated tensors are available)
+  --resume                                Resume from previous run
+  --nf_report                             Generate Nextflow execution report
+  --nf_trace                              Generate Nextflow execution trace
+  --strelka_config            PATH        Path to custom Strelka2 config file
+  --bam_prep_config           PATH        Path to custom BAM preprocessing config file
+  --vcf_post_config           PATH        Path to custom VCF postprocessing config file
+  --bam2tensor_config         PATH        Path to custom bam2tensor config file
+  -h, --help                              Show this help message and exit
 
-GET HELP:
-  -h, --help                      Show this help message and exit
-
-DESCRIPTION:
+  DESCRIPTION:
   Command-line wrapper to run VariantMedium pipeline steps:
    1. Generate TSV inputs                       -> [VariantMedium generate_tsv_files step]
    2. Stage reference data & models             -> [VariantMedium stage_data step]

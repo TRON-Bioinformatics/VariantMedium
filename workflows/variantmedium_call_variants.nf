@@ -5,6 +5,7 @@ include { CALL_VARIANTS as CALL_VARIANTS_INDEL } from './../modules/variantmediu
 workflow VARIANTMEDIUM_CALL_VARIANTS {
 
     take:
+    ch_home_folder              // [path-to-tensors-folder]
     ch_pretrained_model_snv     // [path-to-pretrained-model-snv] 
     ch_pretrained_model_indel   // [path-to-pretrained-model-indel]
 
@@ -18,7 +19,7 @@ workflow VARIANTMEDIUM_CALL_VARIANTS {
     if (params.snv_calling) {
         
         CALL_VARIANTS_SNV (
-            "${params.outdir}/output_01_05_tensors/",
+            ch_home_folder,
             ch_pretrained_model_snv,
             "somatic_snv"
         )
