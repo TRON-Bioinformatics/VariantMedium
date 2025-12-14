@@ -23,8 +23,8 @@ process STAGE_MODELS {
     """
     stage_models.py
     
-    mkdir ${models_dir}/
-    mv *.{pt,joblib} ${models_dir}/
+    mkdir "${models_dir}/"
+    mv *.{pt,joblib} "${models_dir}/"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

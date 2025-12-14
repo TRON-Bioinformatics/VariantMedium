@@ -27,8 +27,8 @@ process STAGE_REFERENCES {
     """
     stage_refs.py
 
-    mkdir -p ${ref_outdir}/
-    mv *.{gz,dict,fa,fai,bb,bed,tbi} ${ref_outdir}/
+    mkdir -p "${ref_outdir}/"
+    mv *.{gz,dict,fa,fai,bb,bed,tbi} "${ref_outdir}/"
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":

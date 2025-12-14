@@ -25,10 +25,10 @@ process FILTER_CANDIDATES {
     mkdir -p filtered_candidates/
     
     filter_candidates.py \
-        -i ${input_tsv} \
-        -o ${output_dir} \
-        -m ${model} \
-        ${call_type} \
+        -i "${input_tsv}" \
+        -o "${output_dir}" \
+        -m "${model}" \
+        "${call_type}" \
         ${args}
 
     mv *.tsv filtered_candidates/

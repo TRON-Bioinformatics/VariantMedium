@@ -1,5 +1,5 @@
 //
-// data stagin for variant medium - references, models
+// data staging for variant medium - references, models
 //
 
 include { STAGE_REFERENCES } from '../../modules/stage_refs/main'

@@ -31,7 +31,7 @@ workflow VARIANTMEDIUM_CALL_VARIANTS {
     if (params.indel_calling) {
         
         CALL_VARIANTS_INDEL (
-            "${params.outdir}/output_01_05_tensors/",
+            ch_home_folder,
             ch_pretrained_model_indel,
             "somatic_indel"
         )
