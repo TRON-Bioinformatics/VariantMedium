@@ -2,24 +2,11 @@
 
 VariantMedium is a deep learning-based somatic variant caller for matched tumor-normal short-read sequencing data. It integrates machine learning–based filtering and 3D convolutional neural networks to classify candidate sites as somatic, germline, or non-variant, with high sensitivity and robustness across diverse genomic contexts and sample types.
 
-## Dependencies
+## Dependencies (handleled in the module environments)
 
 - nextflow >= 24.10.3
 - conda >= 4.4 (miniconda >=23.11.0 recommended)
 - CUDA 11.4 (optional for GPU support)
-
-## Installation
-
-```{bash}
-git clone https://github.com/TRON-Bioinformatics/variantmedium.git
-cd variantmedium
-```
-
-### Build conda environments
-
-```{bash}
-bash build.sh config.conf
-```
 
 ## Usage
 
@@ -29,8 +16,8 @@ the name and pair_identifier as long as they make a unique tuple.
 
 | sample_name | pair_identifier | tumor_bam                   | normal_bam                 |
 | ----------- | --------------- | --------------------------- | -------------------------- |
-| sample1     | 1               | /path/to/sample1_normal.bam | /path/to/sample1_tumor.bam |
-| sample2     | 1               | /path/to/sample2_normal.bam | /path/to/sample2_tumor.bam |
+| sample1     | 1               | /path/to/sample1_tumor.bam | /path/to/sample1_normal.bam |
+| sample2     | 1               | /path/to/sample2_tumor.bam | /path/to/sample2_normal.bam |
 
 ### Command line pipeline launcher
 ```
@@ -96,12 +83,6 @@ reference genome and S07604624 SureSelect Human All Exon V6+UTR from UCSC if you
 directory, e.g. for bams/tumor.bam you have bams/tumor.bai. Also please make sure that the tumor and
 normal bam files do not have the same file name, even if they are under different directories. (
 Linking with a new file name is ok)**
-
-Finally, run the VariantMedium pipeline by
-
-```{bash}
-bash run.sh config.conf
-```
 
 #### Output
 
