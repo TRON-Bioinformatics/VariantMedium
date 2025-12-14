@@ -21,10 +21,24 @@ run_step() {
     log "🔹 Started: $step"
     # Run command and stream stdout/stderr
     "$@" 2>&1 | tee -a "${OUTDIR}/pipeline.log"
-    if [[ "${PIPESTATUS[0]}" -ne 0 ]]; then
+    local status=${PIPESTATUS[0]}
+    if [[ "$status" -ne 0 ]]; then
         die "Step failed: $step"
     fi
     log "✅ Completed: $step"
+}
+
+# Build Nextflow report/trace args for a given pipeline step
+generate_nf_report() {
+    local step="$1"
+    # report
+    if [[ "${REQUEST_REPORT}" == true ]]; then
+        printf '%s\n' "-with-report" "${OUTDIR}/benchmarks/report_${step}.html"
+    fi
+    # trace
+    if [[ "${REQUEST_TRACE}" == true ]]; then
+        printf '%s\n' "-with-trace" "${OUTDIR}/benchmarks/trace_${step}.txt"
+    fi
 }
 
 usage() {
@@ -77,7 +91,7 @@ EOF
 #---------------------------------------
 # Parse arguments
 #---------------------------------------
-EXECUTION_STEP=""
+PIPELINE_STEP=""
 SAMPLESHEET=""
 OUTDIR=""
 PROFILE="conda"
@@ -135,16 +149,6 @@ done
 [[ -f "$SAMPLESHEET" ]] || die "Samplesheet does not exist: $SAMPLESHEET"
 [[ -z "$OUTDIR" ]] && die "--outdir is required"
 
-# After OUTDIR is known, prepare report/trace args if requested
-REPORT_ARGS=()
-TRACE_ARGS=()
-if [[ "$REQUEST_REPORT" == true ]]; then
-    REPORT_ARGS=(-with-report "${OUTDIR}/report.html")
-fi
-if [[ "$REQUEST_TRACE" == true ]]; then
-    TRACE_ARGS=(-with-trace "${OUTDIR}/trace.txt")
-fi
-
 #---------------------------------------
 # mount path check
 #---------------------------------------
@@ -198,6 +202,7 @@ PIPE_LOG="${OUTDIR}/pipeline.log"
 
 #---------------------------------------
 mkdir -p \
+    "${OUTDIR}/benchmarks" \
     "${OUTDIR}/output_01_01_preprocessed_bams" \
     "${OUTDIR}/output_01_02_candidates_strelka2" \
     "${OUTDIR}/output_01_03_vcf_postprocessing" \
@@ -208,15 +213,17 @@ mkdir -p \
 #---------------------------------------
 # 1. Prepare TSV input files
 #---------------------------------------
-EXECUTION_STEP="generate_tsv_files"
+PIPELINE_STEP="generate_tsv_files"
+readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+
 CMD=(nextflow run main.nf
     -profile "${PROFILE}"
     --samplesheet "${SAMPLESHEET}"
     --outdir "${OUTDIR}"
-    --execution_step "${EXECUTION_STEP}"
+    --execution_step "${PIPELINE_STEP}"
 )
 # add report/trace args if requested
-CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
+CMD+=("${REPORT_ARGS[@]}")
 
 [[ "$SKIP_PREPROCESSING" == true ]] && CMD+=(--skip_preprocessing)
 [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
@@ -227,17 +234,19 @@ run_step "Generating TSV input files" "${CMD[@]}"
 #---------------------------------------
 # 2. Stage reference data & models
 #---------------------------------------
-EXECUTION_STEP="stage_data"
 if [[ "$SKIP_DATA_STAGING" == true ]]; then
     log "⚠️ Skipping data staging"
 else
+    PIPELINE_STEP="data_staging"
+    readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+
     CMD=(nextflow run main.nf
         -profile "${PROFILE}"
         --samplesheet "${SAMPLESHEET}"
         --outdir "${OUTDIR}"
-        --execution_step "${EXECUTION_STEP}"
+        --execution_step "${PIPELINE_STEP}"
     )
-    CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
+    CMD+=("${REPORT_ARGS[@]}")
     [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
     [[ -n "$RESUME" ]] && CMD+=("$RESUME")
 
@@ -250,6 +259,9 @@ fi
 if [[ "$SKIP_PREPROCESSING" == true ]]; then
     log "⚠️ Skipping BAM preprocessing"
 else
+    PIPELINE_STEP="bam_preprocessing"
+    readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+
     CMD=(nextflow run tron-bioinformatics/tronflow-bam-preprocessing
         -r v2.1.0
         -profile "${PROFILE}"
@@ -262,7 +274,7 @@ else
         --skip_deduplication
         --skip_metrics
     )
-    CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
+    CMD+=("${REPORT_ARGS[@]}")
 
     # add custom BAM preprocessing config if provided
     [[ -n "$BAM_PREP_CONFIG" ]] && CMD+=(-c "$BAM_PREP_CONFIG")
@@ -277,6 +289,9 @@ fi
 if [[ "$SKIP_CANDIDATE_CALLING" == true ]]; then
     log "⚠️ Skipping Candidate Calling (Strelka2)"
 else
+    PIPELINE_STEP="candidate_calling"
+    readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+
     # Handle intervals only if BED exists
     INTERVALS_PARAM=()
     [[ -f "$EXOME_BED" ]] && INTERVALS_PARAM=(--intervals "$EXOME_BED")
@@ -288,7 +303,7 @@ else
         --output "${OUTDIR}/output_01_02_candidates_strelka2"
         -r v0.2.4
     )
-    CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
+    CMD+=("${REPORT_ARGS[@]}")
 
     # Include custom config only if provided
     [[ -n "$STRELKA_CONFIG" ]] && CMD+=("-c" "$STRELKA_CONFIG")
@@ -309,6 +324,9 @@ fi
 if [[ "$SKIP_FEATURE_GENERATION" == true ]]; then
     log "⚠️ Skipping VCF postprocessing"
 else
+    PIPELINE_STEP="feature_generation"
+    readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+
     CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
         -r v3.1.2
         -profile "${PROFILE}"
@@ -317,7 +335,7 @@ else
         --reference "${REF}"
         --output "${OUTDIR}/output_01_03_vcf_postprocessing"
     )
-    CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
+    CMD+=("${REPORT_ARGS[@]}")
 
     # Add custom VCF postprocessing config if provided
     [[ -n "$VCF_POST_CONFIG" ]] && CMD+=(-c "$VCF_POST_CONFIG")
@@ -332,14 +350,16 @@ fi
 if [[ "$SKIP_CANDIDATE_FILTERING" == true ]]; then
     log "⚠️ Skipping ExtraTrees candidate filtering"
 else
-    EXECUTION_STEP="filter_candidates"
+    PIPELINE_STEP="candidate_filtering"
+    readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+
     CMD=(nextflow run main.nf
         -profile "${PROFILE}"
         --samplesheet "${SAMPLESHEET}"
         --outdir "${OUTDIR}"
-        --execution_step "${EXECUTION_STEP}"
+        --execution_step "${PIPELINE_STEP}"
     )
-    CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
+    CMD+=("${REPORT_ARGS[@]}")
     [[ -n "$RESUME" ]] && CMD+=("$RESUME")
     [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
     run_step "ExtraTrees candidate filtering" "${CMD[@]}"
@@ -351,6 +371,9 @@ fi
 if [[ "$SKIP_TENSOR_GENERATION" == true ]]; then
     log "⚠️ Skipping Tensor generation"
 else
+    PIPELINE_STEP="tensor_generation"
+    readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+
     CMD=(nextflow run tron-bioinformatics/bam2tensor
         -r 1.0.2
         -profile "${PROFILE}"
@@ -363,7 +386,7 @@ else
         --max_mapq 60
         --max_baseq 82
     )
-    CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
+    CMD+=("${REPORT_ARGS[@]}")
 
     # Add custom bam2tensor config if provided
     [[ -n "$BAM2TENSOR_CONFIG" ]] && CMD+=(-c "$BAM2TENSOR_CONFIG")
@@ -375,14 +398,16 @@ fi
 #---------------------------------------
 # 8. 3D DenseNet variant calling
 #---------------------------------------
-EXECUTION_STEP="call_variants"
+PIPELINE_STEP="variant_calling"
+readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+
 CMD=(nextflow run main.nf
     -profile "${PROFILE}"
     --samplesheet "${SAMPLESHEET}"
     --outdir "${OUTDIR}"
-    --execution_step "${EXECUTION_STEP}"
+    --execution_step "${PIPELINE_STEP}"
 )
-CMD+=("${REPORT_ARGS[@]}" "${TRACE_ARGS[@]}")
+CMD+=("${REPORT_ARGS[@]}")
 [[ -n "$RESUME" ]] && CMD+=("$RESUME")
 [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
 run_step "3D DenseNet SNV/Indel calling" "${CMD[@]}"

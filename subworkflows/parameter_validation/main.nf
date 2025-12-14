@@ -21,7 +21,7 @@ workflow VALIDATE_PARAMETERS {
     }
     
     // check if execution step is valid
-    def valid_steps = ["generate_tsv_files", "stage_data", "filter_candidates", "call_variants"]
+    def valid_steps = ["generate_tsv_files", "data_staging", "candidate_filtering", "variant_calling"]
     if(!valid_steps.contains(params.execution_step)) {
         log.error "Invalid execution step: ${params.execution_step}. Valid options are: [${valid_steps.join(', ')}]"
         exit(1)

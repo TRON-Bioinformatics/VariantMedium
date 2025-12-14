@@ -132,6 +132,5 @@ logs/
 null/
 samplesheet.csv
 run.conf
-strelka.config
-bam2tensor.config
 compare.py
+pre_processed_samples

@@ -22,8 +22,6 @@ process FILTER_CANDIDATES {
     def call_type = "${calling_type}" == 'snv' ? '--snv' : '--indel'
     
     """
-    export PYTHONPATH="${projectDir}:\${PYTHONPATH:-}"
-
     mkdir -p filtered_candidates/
     
     filter_candidates.py \
