@@ -33,6 +33,6 @@ workflow VALIDATE_PARAMETERS {
         exit(1)
     }
 
-    log.info "[INFO] Parameters validated successfully"
+    log.info "[INFO] Parameters validated"
 
 }

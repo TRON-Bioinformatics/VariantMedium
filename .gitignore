@@ -109,7 +109,6 @@ venv.bak/
 sample_names
 .DS_Store
 
-envs/
 ref_data/
 software_test/
 config_tron.conf
@@ -131,6 +130,3 @@ slurm_*
 logs/
 null/
 samplesheet.csv
-run.conf
-compare.py
-pre_processed_samples

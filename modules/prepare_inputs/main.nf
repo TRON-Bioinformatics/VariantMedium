@@ -1,5 +1,4 @@
 process PREPARE_INPUTS {
-    tag "-"
     label 'process_low'
 
     conda "${moduleDir}/environment.yml"
@@ -33,7 +32,7 @@ process PREPARE_INPUTS {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        prepare_input_files: 1.0.0
+        prepare_input_files: ${params.version}
     END_VERSIONS
     """
 
@@ -49,7 +48,7 @@ process PREPARE_INPUTS {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        prepare_input_files: 1.0.0
+        prepare_input_files: "${params.version}"
     END_VERSIONS
     """
 }

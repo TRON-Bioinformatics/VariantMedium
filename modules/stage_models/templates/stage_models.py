@@ -53,6 +53,7 @@ def main():
     ]
 
     for f in files:
+        
         dest = Path(f["filename"])
         print(f"\nDownloading {f['filename']} ...")
         download_file(f["url"], dest)

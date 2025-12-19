@@ -33,11 +33,11 @@ generate_nf_report() {
     local step="$1"
     # report
     if [[ "${REQUEST_REPORT}" == true ]]; then
-        printf '%s\n' "-with-report" "${OUTDIR}/benchmarks/report_${step}.html"
+        printf '%s\n' "-with-report" "${OUTDIR}/${BENCHMARK_DIR}/report_${step}.html"
     fi
     # trace
     if [[ "${REQUEST_TRACE}" == true ]]; then
-        printf '%s\n' "-with-trace" "${OUTDIR}/benchmarks/trace_${step}.txt"
+        printf '%s\n' "-with-trace" "${OUTDIR}/${BENCHMARK_DIR}/trace_${step}.txt"
     fi
 }
 
@@ -57,26 +57,26 @@ REQUIRED ARGUMENTS:
 
 OPTIONAL ARGUMENTS:
   --config                    PATH        Path to custom config file (.conf)
-  --mount_path                PATH        Path to mount when using singularity profile [required for the singularity profile]
-  --skip_data_staging                     Skip staging reference data & models
-  --skip_preprocessing                    Skip BAM preprocessing step
-  --skip_candidate_calling                Skip candidate calling step (if already generated VCFs are available)
-  --skip_feature_generation               Skip VCF postprocessing / feature generation step (if already generated features are available)
-  --skip_candidate_filtering              Skip ExtraTrees candidate filtering step (if already filtered candidates are available)
-  --skip_tensor_generation                Skip tensor generation (if already generated tensors are available)
+  --mount-path                PATH        Path to mount when using singularity profile [required for the singularity profile]
+  --skip-data-staging                     Skip staging reference data & models
+  --skip-preprocessing                    Skip BAM preprocessing step
+  --skip-candidate-calling                Skip candidate calling step (if already generated VCFs are available)
+  --skip-feature-generation               Skip VCF postprocessing / feature generation step (if already generated features are available)
+  --skip-candidate-filtering              Skip ExtraTrees candidate filtering step (if already filtered candidates are available)
+  --skip-tensor-generation                Skip tensor generation (if already generated tensors are available)
   --resume                                Resume from previous run
-  --nf_report                             Generate Nextflow execution report
-  --nf_trace                              Generate Nextflow execution trace
-  --strelka_config            PATH        Path to custom Strelka2 config file
-  --bam_prep_config           PATH        Path to custom BAM preprocessing config file
-  --vcf_post_config           PATH        Path to custom VCF postprocessing config file
-  --bam2tensor_config         PATH        Path to custom bam2tensor config file
+  --nf-report                             Generate Nextflow execution report
+  --nf-trace                              Generate Nextflow execution trace
+  --strelka-config            PATH        Path to custom Strelka2 config file
+  --bam-prep-config           PATH        Path to custom BAM preprocessing config file
+  --vcf-post-config           PATH        Path to custom VCF postprocessing config file
+  --bam2tensor-config         PATH        Path to custom bam2tensor config file
   -h, --help                              Show this help message and exit
 
   DESCRIPTION:
   Command-line wrapper to run VariantMedium pipeline steps:
-   1. Generate TSV inputs                       -> [VariantMedium generate_tsv_files step]
-   2. Stage reference data & models             -> [VariantMedium stage_data step]
+   1. Generate TSV inputs                       -> [VariantMedium generating input tsv files step]
+   2. Stage reference data & models             -> [VariantMedium data staging step]
    3. BAM preprocessing                         -> [tronflow-bam-preprocessing]
    4. Candidate calling (Strelka2)              -> [tronflow-strelka2]
    5. Feature generation                        -> [tronflow-vcf-postprocessing]
@@ -94,6 +94,14 @@ EOF
 PIPELINE_STEP=""
 SAMPLESHEET=""
 OUTDIR=""
+BENCHMARK_DIR="benchmarks"
+REF_DIR=""
+MODELS_DIR=""
+REF=""
+EXOME_BED=""
+DBSNP=""
+KNOWN_INDELS1=""
+KNOWN_INDELS2=""
 PROFILE="conda"
 SKIP_DATA_STAGING=false
 SKIP_PREPROCESSING=false
@@ -119,96 +127,154 @@ while [[ $# -gt 0 ]]; do
         --profile) PROFILE="$2"; shift 2;;
         # optional args
         --config) CONFIG_FILE="$2"; shift 2;;
-        --mount_path) MOUNT_PATH="$2"; shift 2;;
-        --skip_data_staging) SKIP_DATA_STAGING=true; shift;;
-        --skip_preprocessing) SKIP_PREPROCESSING=true; shift;;
+        --mount-path) MOUNT_PATH="$2"; shift 2;;
+        --skip-data-staging) SKIP_DATA_STAGING=true; shift;;
+        --skip-preprocessing) SKIP_PREPROCESSING=true; shift;;
         # debug options
-        --skip_candidate_calling) SKIP_CANDIDATE_CALLING=true; shift;;
-        --skip_feature_generation) SKIP_FEATURE_GENERATION=true; shift;;
-        --skip_candidate_filtering) SKIP_CANDIDATE_FILTERING=true; shift;;
-        --skip_tensor_generation) SKIP_TENSOR_GENERATION=true; shift;;
+        --skip-candidate-calling) SKIP_CANDIDATE_CALLING=true; shift;;
+        --skip-feature-generation) SKIP_FEATURE_GENERATION=true; shift;;
+        --skip-candidate-filtering) SKIP_CANDIDATE_FILTERING=true; shift;;
+        --skip-tensor-generation) SKIP_TENSOR_GENERATION=true; shift;;
         # nf options
         --resume) RESUME="-resume"; shift;;
-        --nf_report) REQUEST_REPORT=true; shift;;
-        --nf_trace) REQUEST_TRACE=true; shift;;
+        --nf-report) REQUEST_REPORT=true; shift;;
+        --nf-trace) REQUEST_TRACE=true; shift;;
         # custom config files
-        --strelka_config) STRELKA_CONFIG="$2"; shift 2;;
-        --bam_prep_config) BAM_PREP_CONFIG="$2"; shift 2;;
-        --vcf_post_config) VCF_POST_CONFIG="$2"; shift 2;;
-        --bam2tensor_config) BAM2TENSOR_CONFIG="$2"; shift 2;;
+        --strelka-config) STRELKA_CONFIG="$2"; shift 2;;
+        --bam-prep-config) BAM_PREP_CONFIG="$2"; shift 2;;
+        --vcf-post-config) VCF_POST_CONFIG="$2"; shift 2;;
+        --bam2tensor-config) BAM2TENSOR_CONFIG="$2"; shift 2;;
         -h|--help) usage;;
         *) die "Unknown argument: $1";;
     esac
 done
 
 #---------------------------------------
-# Argument validation
+# Load config file if provided
+#---------------------------------------
+if [[ -n "$CONFIG_FILE" ]]; then
+    [[ -f "$CONFIG_FILE" ]] || die "Config file not found: $CONFIG_FILE"
+    log "Loading config: $CONFIG_FILE"
+    # shellcheck source=/dev/null
+    source "$CONFIG_FILE"
+fi
+
+#---------------------------------------
+# Validate required variables (CLI OR config)
 #---------------------------------------
 
-[[ -z "$SAMPLESHEET" ]] && die "Please provide samplesheet with the --samplesheet option"
+# Default profile if not provided anywhere
+[[ -z "$PROFILE" ]] && PROFILE="conda"
+
+# Required variables must exist after merging CLI + config
+[[ -n "$SAMPLESHEET" ]] || die "SAMPLESHEET must be provided via --samplesheet or config file"
+[[ -n "$OUTDIR"     ]] || die "OUTDIR must be provided via --outdir or config file"
+[[ -n "$PROFILE"    ]] || die "PROFILE must be provided via --profile or config file"
+
+# Validate samplesheet path
 [[ -f "$SAMPLESHEET" ]] || die "Samplesheet does not exist: $SAMPLESHEET"
-[[ -z "$OUTDIR" ]] && die "--outdir is required"
+
+# Normalize OUTDIR
+OUTDIR="$(realpath -m "$OUTDIR")"
 
 #---------------------------------------
-# mount path check
+# data staging skip checks
 #---------------------------------------
-if [[ "$PROFILE" == "singularity" ]]; then
-    if [[ -z "$MOUNT_PATH" ]]; then
-        die "Profile 'singularity' requires --mount_path to be provided."
-    fi
-    if [[ ! -d "$MOUNT_PATH" ]]; then
-        die "Mount path does not exist: $MOUNT_PATH"
-    fi
-    log "Using Singularity mount path: $MOUNT_PATH"
+if [[ "$SKIP_DATA_STAGING" == true ]]; then
+    [[ -z "$REF_DIR" ]] && die "--skip_data_staging requires REF_DIR to be set (via config). Provide config with --config with REF_DIR set."
+    [[ -z "$MODELS_DIR" ]] && die "--skip_data_staging requires MODELS_DIR to be set (via config). Provide config with --config with MODELS_DIR set."
+
+    REF_DIR="$(realpath -m "$REF_DIR")"
+    MODELS_DIR="$(realpath -m "$MODELS_DIR")"
+
+    [[ -d "$REF_DIR" ]] || die "REF_DIR does not exist: $REF_DIR"
+    [[ -d "$MODELS_DIR" ]] || die "MODELS_DIR does not exist: $MODELS_DIR"
 fi
 
 #---------------------------------------
 # Derived paths
 #---------------------------------------
-
 TSV_FOLDER="${OUTDIR}/tsv_folder"
-REF_DIR="${OUTDIR}/data_staging/ref_data"
-REF="${REF_DIR}/GRCh38.d1.vd1.fa"
-EXOME_BED="${REF_DIR}/S07604624_Covered_human_all_v6_plus_UTR.liftover.to.hg38.sorted.bed.gz"
-DBSNP="${REF_DIR}/dbsnp_146.hg38.vcf.gz"
-KNOWN_INDELS1="${REF_DIR}/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz"
 
-# ------------------------------
-# Load config file if provided
-# ------------------------------
-if [[ -n "$CONFIG_FILE" ]]; then
-    [[ -f "$CONFIG_FILE" ]] || die "Config file not found: $CONFIG_FILE"
-    log "Loading config: $CONFIG_FILE"
-    source "$CONFIG_FILE"
+if [[ "$SKIP_DATA_STAGING" == false ]]; then
+    REF_DIR="${OUTDIR}/data_staging/ref_data"
+    MODELS_DIR="${OUTDIR}/data_staging/models"
 fi
 
 #---------------------------------------
-log "---------------------------------------------"
-log "Samplesheet              : $SAMPLESHEET"
-log "Output directory         : $OUTDIR"
-log "Profile                  : $PROFILE"
-log "Skip Data Staging        : $SKIP_DATA_STAGING"
-log "Skip BAM preprocessing   : $SKIP_PREPROCESSING"
-log "Skip Candidate Calling   : $SKIP_CANDIDATE_CALLING"
-log "Skip Feature Generation  : $SKIP_FEATURE_GENERATION"
-log "Skip Candidate Filtering : $SKIP_CANDIDATE_FILTERING"
-log "Skip Tensor Generation   : $SKIP_TENSOR_GENERATION"
-log "---------------------------------------------"
+# Reference variables (update from config if provided)
 #---------------------------------------
+if [[ -n "$CONFIG_FILE" ]]; then
+    # Update from config only if the variable is defined in config
+    [[ -n "${REF:-}" ]]          && REF="$(realpath -m "$REF")"
+    [[ -n "${EXOME_BED:-}" ]]    && EXOME_BED="$(realpath -m "$EXOME_BED")"
+    [[ -n "${DBSNP:-}" ]]        && DBSNP="$(realpath -m "$DBSNP")"
+    [[ -n "${KNOWN_INDELS1:-}" ]]&& KNOWN_INDELS1="$(realpath -m "$KNOWN_INDELS1")"
 
+    # Optional known indels 2
+    [[ -n "${KNOWN_INDELS2:-}" ]] && KNOWN_INDELS2="$(realpath -m "$KNOWN_INDELS2")"
+fi
+
+#---------------------------------------
+# Set defaults if still empty
+#---------------------------------------
+[[ -z "$REF" ]]          && REF="${REF_DIR}/GRCh38.d1.vd1.fa"
+[[ -z "$EXOME_BED" ]]    && EXOME_BED="${REF_DIR}/S07604624_Covered_human_all_v6_plus_UTR.liftover.to.hg38.sorted.bed.gz"
+[[ -z "$DBSNP" ]]        && DBSNP="${REF_DIR}/dbsnp_146.hg38.vcf.gz"
+[[ -z "$KNOWN_INDELS1" ]]&& KNOWN_INDELS1="${REF_DIR}/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz"
+
+
+#---------------------------------------
+# mount path check
+#---------------------------------------
+if [[ "$PROFILE" == "singularity" ]]; then
+    [[ -z "$MOUNT_PATH" ]] && die "Profile 'singularity' requires --mount_path"
+    [[ -d "$MOUNT_PATH" ]] || die "Mount path does not exist: $MOUNT_PATH"
+    log "Using Singularity mount path: $MOUNT_PATH"
+fi
+
+#---------------------------------------
+# Logging summary
+#---------------------------------------
+log "---------------------------------------------"
+log "  Samplesheet              : ${SAMPLESHEET:-<from config>}"
+log "  Config file              : ${CONFIG_FILE:-<none>}"
+log "  Output dir               : $OUTDIR"
+log "  Profile                  : $PROFILE"
+log "  Skip data staging        : $SKIP_DATA_STAGING"
+log "  Skip bam preprocessing   : $SKIP_PREPROCESSING"
+log "  Skip candidate calling   : $SKIP_CANDIDATE_CALLING"
+log "  Skip feature generation  : $SKIP_FEATURE_GENERATION"
+log "  Skip candidate filtering : $SKIP_CANDIDATE_FILTERING"
+log "  Skip tensor generation   : $SKIP_TENSOR_GENERATION"
+log "  References dir           : $REF_DIR"
+log "  Models dir               : $MODELS_DIR"
+log "  Reference                : $REF"
+log "  Exome BED                : $EXOME_BED"
+log "  dbSNP                    : $DBSNP"
+log "  Known Indels             : $KNOWN_INDELS1"
+log "  Mount path               : ${MOUNT_PATH:-<none>}"
+log "  Resume                   : ${RESUME:-<no>}"
+log "  Request NF report        : $REQUEST_REPORT"
+log "  Request NF trace         : $REQUEST_TRACE"
+log "---------------------------------------------"
+exit
+#---------------------------------------
+# Prepare output directories
+#---------------------------------------
 mkdir -p "$OUTDIR"
 PIPE_LOG="${OUTDIR}/pipeline.log"
 : > "$PIPE_LOG"
 
-#---------------------------------------
 mkdir -p \
-    "${OUTDIR}/benchmarks" \
+    "${OUTDIR}/${BENCHMARK_DIR}" \
     "${OUTDIR}/output_01_01_preprocessed_bams" \
     "${OUTDIR}/output_01_02_candidates_strelka2" \
     "${OUTDIR}/output_01_03_vcf_postprocessing" \
     "${OUTDIR}/output_01_04_candidates_extratrees/Production_Model" \
     "${OUTDIR}/output_01_05_tensors" \
     "${OUTDIR}/output_01_06_calls_densenet"
+
 
 #---------------------------------------
 # 1. Prepare TSV input files
