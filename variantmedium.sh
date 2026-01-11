@@ -281,7 +281,8 @@ mkdir -p \
 PIPELINE_STEP="generate_tsv_files"
 readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 
-CMD=(nextflow run main.nf
+CMD=(nextflow run tron-bioinformatics/VariantMedium
+    -r dev # use version tag when available
     -profile "${PROFILE}"
     --samplesheet "${SAMPLESHEET}"
     --outdir "${OUTDIR}"
@@ -305,7 +306,8 @@ else
     PIPELINE_STEP="data_staging"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 
-    CMD=(nextflow run main.nf
+    CMD=(nextflow run tron-bioinformatics/VariantMedium
+        -r dev # use version tag when available
         -profile "${PROFILE}"
         --samplesheet "${SAMPLESHEET}"
         --outdir "${OUTDIR}"
@@ -317,7 +319,6 @@ else
 
     run_step "Staging reference data and models" "${CMD[@]}"
 fi
-
 #---------------------------------------
 # 3. BAM preprocessing
 #---------------------------------------
@@ -418,7 +419,8 @@ else
     PIPELINE_STEP="candidate_filtering"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 
-    CMD=(nextflow run main.nf
+    CMD=(nextflow run tron-bioinformatics/VariantMedium
+        -r dev # use version tag when available
         -profile "${PROFILE}"
         --samplesheet "${SAMPLESHEET}"
         --outdir "${OUTDIR}"
@@ -466,7 +468,8 @@ fi
 PIPELINE_STEP="variant_calling"
 readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 
-CMD=(nextflow run main.nf
+CMD=(nextflow run tron-bioinformatics/VariantMedium
+    -r dev # use version tag when available
     -profile "${PROFILE}"
     --samplesheet "${SAMPLESHEET}"
     --outdir "${OUTDIR}"
