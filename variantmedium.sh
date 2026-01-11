@@ -258,7 +258,6 @@ log "  Resume                   : ${RESUME:-<no>}"
 log "  Request NF report        : $REQUEST_REPORT"
 log "  Request NF trace         : $REQUEST_TRACE"
 log "---------------------------------------------"
-exit
 #---------------------------------------
 # Prepare output directories
 #---------------------------------------
