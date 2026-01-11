@@ -11,10 +11,10 @@ import torch
 from glob import glob
 from typing import List, Text
 
-from constants import GERMLINE_MODES, SOMATIC_MODES, UNKNOWN_STRATEGIES, \
+from src.constants import GERMLINE_MODES, SOMATIC_MODES, UNKNOWN_STRATEGIES, \
     DATASETS
-from evaluation import evaluate_model
-from pipeline import pipeline
+from src.evaluation import evaluate_model
+from src.pipeline import pipeline
 
 FORMAT = '%(levelname)s %(asctime)-15s %(name)-20s %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)

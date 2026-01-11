@@ -5,9 +5,9 @@ import torch.nn as nn
 from torch.nn import functional as F
 from typing import Dict, List, Tuple, Text
 
-from architecture import initialize_network
-from dataloaders.data_loader import MutationDataLoader
-from utils import *
+from src.architecture import initialize_network
+from src.dataloaders.data_loader import MutationDataLoader
+from src.utils import *
 
 # import os
 # import sys

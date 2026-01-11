@@ -1,16 +1,15 @@
-import argparse
 import pandas as pd
 
 from joblib import load
 
-from filter_candidates.constants_ml_snv import *
-from filter_candidates.constants_ml_indel import *
-from filter_candidates.extra_trees_functions import apply_threshold
-from filter_candidates.extra_trees_io import save_results, get_df, query_vcf_to_tsv
-from filter_candidates.main import filter_simple
+from src.filter_candidates.constants_ml_snv import *
+from src.filter_candidates.constants_ml_indel import *
+from src.filter_candidates.extra_trees_functions import apply_threshold
+from src.filter_candidates.extra_trees_io import save_results, get_df, query_vcf_to_tsv
+from src.filter_candidates.main import filter_simple
 
 
-def filter(
+def filter_candidates(
         df,
         model_tmpl,
         out_tmpl,

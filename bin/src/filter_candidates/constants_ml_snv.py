@@ -1,4 +1,4 @@
-from filter_candidates.constants import PCAWG
+from src.filter_candidates.constants import PCAWG
 
 SETS_SNV = {
     'COLO_829_Model': {

@@ -46,10 +46,6 @@ workflow PARSE_SAMPLESHEET {
             def tumorFile = file(tumorPath)
             def normalFile = file(normalPath)
 
-            // check if files exists
-            if( !tumorFile.exists() ) { error "Tumor BAM does not exist: $tumorPath" }
-            if( !normalFile.exists() ) { error "Normal BAM does not exist: $normalPath" }
-
             tuple(row.sample_name, row.pair_identifier, tumorFile, normalFile)
         }
         .set { sample_info_ch }

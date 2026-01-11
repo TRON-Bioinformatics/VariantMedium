@@ -2,7 +2,7 @@ import copy
 import pandas as pd
 import pysam
 
-from filter_candidates.constants import SAVE_COLUMNS, CELL_LINES
+from src.filter_candidates.constants import SAVE_COLUMNS, CELL_LINES
 
 
 def get_all_dfs(
@@ -149,7 +149,9 @@ def save_results(df, tmpl, model_name, samples, muttype, w_label):
 
 # Define a function that mimics bcftools query -f and writes output to a TSV file
 def query_vcf_to_tsv(vcf_file, tsv_file):
-    query_format = '%CHROM\t%POS\t%REF\t%ALT\t%FILTER\t%primary_af\t%primary_dp\t%primary_ac\t%primary_pu\t%primary_pw\t%primary_k\t%primary_rsmq\t%primary_rsmq_pv\t%primary_rsbq\t%primary_rsbq_pv\t%primary_rspos\t%primary_rspos_pv\t%normal_af\t%normal_dp\t%normal_ac\t%normal_pu\t%normal_pw\t%normal_k\t%normal_rsmq\t%normal_rsmq_pv\t%normal_rsbq\t%normal_rsbq_pv\t%normal_rspos\t%normal_rspos_pv\n'
+    query_format = (
+        '%CHROM\t%POS\t%REF\t%ALT\t%FILTER\t%primary_af\t%primary_dp\t%primary_ac\t%primary_pu\t%primary_pw\t%primary_k\t%primary_eaf\t%primary_bq\t%primary_mq\t%primary_pos\t%primary_rsmq\t%primary_rsmq_pv\t%primary_rsbq\t%primary_rsbq_pv\t%primary_rspos\t%primary_rspos_pv\t%normal_af\t%normal_dp\t%normal_ac\t%normal_pu\t%normal_pw\t%normal_k\t%normal_eaf\t%normal_bq\t%normal_mq\t%normal_pos\t%normal_rsmq\t%normal_rsmq_pv\t%normal_rsbq\t%normal_rsbq_pv\t%normal_rspos\t%normal_rspos_pv\n'
+    )
 
     # Open the VCF file
     vcf = pysam.VariantFile(vcf_file, "r")

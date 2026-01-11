@@ -6,7 +6,7 @@ from collections import OrderedDict
 from typing import Text
 
 import torch
-from models.densesomatic3d import densesomatic3d
+from src.models.densesomatic3d import densesomatic3d
 
 logger = logging.getLogger(__name__)
 random.seed(567497)

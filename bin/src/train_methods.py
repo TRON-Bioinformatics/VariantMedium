@@ -6,9 +6,9 @@ import random
 import torch
 import torch.nn as nn
 
-from dataloaders.data_loader import MutationDataLoader
-from valid_methods import validate_network
-from utils import *
+from src.dataloaders.data_loader import MutationDataLoader
+from src.valid_methods import validate_network
+from src.utils import *
 
 # from variantmedium.early_stopping import EarlyStopping
 

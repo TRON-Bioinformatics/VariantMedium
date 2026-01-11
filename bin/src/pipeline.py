@@ -8,12 +8,12 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
-import constants
-from architecture import initialize_network
-from dataloaders.data_loader import MutationDataLoader
-from train_methods import train_network
-from valid_methods import validate_network
-from utils import save_scores
+from src.constants import BEST_MODEL_FNAME
+from src.architecture import initialize_network
+from src.dataloaders.data_loader import MutationDataLoader
+from src.train_methods import train_network
+from src.valid_methods import validate_network
+from src.utils import save_scores
 
 logger = logging.getLogger(__name__)
 
@@ -65,11 +65,11 @@ def pipeline(hp, call: bool = False):
         logger.info(network)
         del network
     else:
-        constants.BEST_MODEL_FNAME = hp.pretrained_model
+        BEST_MODEL_FNAME = hp.pretrained_model
     torch.cuda.empty_cache()
     valid_loader.dataset.for_final_validation = True
     scores_valid, metadata_valid, _ = validate_network(
-        valid_loader, hp, constants.BEST_MODEL_FNAME
+        valid_loader, hp, BEST_MODEL_FNAME
     )
     save_scores(
         scores_valid,

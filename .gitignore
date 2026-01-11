@@ -109,7 +109,6 @@ venv.bak/
 sample_names
 .DS_Store
 
-envs/
 ref_data/
 software_test/
 config_tron.conf
@@ -129,3 +128,5 @@ ref/
 *.tsv
 slurm_*
 logs/
+null/
+samplesheet.csv

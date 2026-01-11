@@ -8,7 +8,7 @@ import random
 import torch
 from typing import List, Text
 
-from constants import *
+from src.constants import *
 
 logger = logging.getLogger(__name__)
 

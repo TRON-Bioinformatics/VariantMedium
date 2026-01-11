@@ -8,7 +8,7 @@ import torch
 from sklearn.metrics import average_precision_score as aps
 from sklearn.metrics import roc_auc_score  as auroc
 
-from constants import *
+from src.constants import *
 
 logger = logging.getLogger(__name__)
 random.seed(567497)

@@ -1,6 +1,5 @@
 process CALL_VARIANTS {
-    tag "-"
-    label 'process_high'
+    label "process_high_memory"
 
     conda "${moduleDir}/environment.yml"
     container "https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/a7/a73b7de4a8d00029f69b6cef20b74e1a1d6b48c1d7d5a65b5e55cf09c3fe6ce7/data"
@@ -9,11 +8,12 @@ process CALL_VARIANTS {
     path(home_folder)
     path(pretrained_model)
     val(prediction_mode)
-    val(out_path)
 
     output:
-    path ("${out_path}/"), emit: call_outs
-    path ("versions.yml"), emit: versions
+    path("*.{somatic,germline}_{snv,indel}.VariantMedium.{tsv,vcf}"), emit: call_outs
+    path("scores_{somatic,germline}_{snv,indel}.tsv")               , emit: score_outs
+    path("all_scores_{somatic,germline}_{snv,indel}.tsv")           , emit: all_score_outs
+    path("versions.yml")                                            , emit: versions
 
     when:
     task.ext.when == null || task.ext.when
@@ -22,34 +22,43 @@ process CALL_VARIANTS {
     def args = task.ext.args ?: ''
 
     """
-    run_variant_medium.py run \\
-        --home_folder ${home_folder} \\
+    run_variant_medium.py call \\
+        --home_folder "${home_folder}" \\
         --unknown_strategy_call keep_as_false \\
-        --pretrained_model ${pretrained_model} \\
-        --prediction_mode ${prediction_mode} \\
-        --out_path ${out_path} \\
-        --learning_rate ${params.learning_rate} \\
-        --epoch ${params.epoch} \\
-        --drop_rate ${params.drop_rate} \\
-        --aug_rate ${params.aug_rate} \\
-        --aug_mixes ${params.aug_mixes} \\
+        --pretrained_model "${pretrained_model}" \\
+        --prediction_mode "${prediction_mode}" \\
+        --learning_rate "${params.learning_rate}" \\
+        --epoch "${params.epoch}" \\
+        --drop_rate "${params.drop_rate}" \\
+        --aug_rate 5 \\
+        --aug_mixes nan \\
         --run call \\
         ${args}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        variantmedium: 1.1.0
+        variantmedium: "${params.version}"
     END_VERSIONS
     """
 
     stub:
     """
-    mkdir -p ${out_path}/
-    touch "${out_path}/fake_file.txt"
+    touch sample.somatic_snv.VariantMedium.tsv
+    touch sample.germline_snv.VariantMedium.tsv
+    touch sample.somatic_indel.VariantMedium.tsv
+    touch sample.germline_indel.VariantMedium.tsv
+    touch sample.scores_somatic_snv.tsv
+    touch sample.scores_germline_snv.tsv
+    touch sample.scores_somatic_indel.tsv
+    touch sample.scores_germline_indel.tsv
+    touch sample.all_scores_somatic_snv.tsv
+    touch sample.all_scores_germline_snv.tsv
+    touch sample.all_scores_somatic_indel.tsv
+    touch sample.all_scores_germline_indel.tsv
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        variantmedium: 1.1.0
+        variantmedium: "${params.version}"
     END_VERSIONS
     """
 }
