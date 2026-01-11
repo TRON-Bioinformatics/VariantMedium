@@ -109,7 +109,6 @@ venv.bak/
 sample_names
 .DS_Store
 
-envs/
 ref_data/
 software_test/
 config_tron.conf
@@ -122,3 +121,12 @@ work
 report-*
 trace-*
 
+# variantmedium
+*.pt
+*.joblib
+ref/
+*.tsv
+slurm_*
+logs/
+null/
+samplesheet.csv

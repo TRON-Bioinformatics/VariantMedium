@@ -1,0 +1,7 @@
+channels:
+- conda-forge
+- bioconda
+dependencies:
+- pip
+- pip:
+  - nextflow==25.10.0
