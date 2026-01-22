@@ -13,8 +13,8 @@ def download_file(url: str, dest: Path):
             dest.write_bytes(response.content)
             return
         except requests.RequestException as e:
-            print(f"Attempt {attempt+1}/5 failed: {e}")
-    raise RuntimeError(f"Failed to download {url} after 5 attempts")
+            print("Attempt {}/5 failed: {}".format(attempt+1, e))
+    raise RuntimeError("Failed to download {} after 5 attempts".format(url))
 
 def verify_checksum(file_path: Path, expected_md5: str):
     """Verify file MD5 checksum."""
@@ -24,8 +24,13 @@ def verify_checksum(file_path: Path, expected_md5: str):
             md5.update(chunk)
     actual_md5 = md5.hexdigest()
     if actual_md5 != expected_md5:
-        raise ValueError(f"Checksum mismatch for {file_path.name}\nExpected: {expected_md5}\nActual:   {actual_md5}")
-    print(f" Checksum Verified: {file_path.name}")
+        raise ValueError("Checksum mismatch for {} Expected: {} Actual:   {}".format(file_path.name, expected_md5, actual_md5))
+    print(" Checksum Verified: {}".format(file_path.name))
+
+def generate_version_yml() -> None:
+    with open("versions.yml", "w") as yml:
+        yml.write("${task.process}\\n")
+        yml.write("stage_models: ${params.version}\\n")
 
 def main():
 
@@ -52,14 +57,21 @@ def main():
         },
     ]
 
+    output_dir = Path("./models")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    print("Downloading models to {}".format(output_dir.resolve()))
+
     for f in files:
         
-        dest = Path(f["filename"])
-        print(f"\nDownloading {f['filename']} ...")
+        dest = output_dir / f["filename"]
+        print("Downloading {} ...".format(f["filename"]))
         download_file(f["url"], dest)
         verify_checksum(dest, f["checksum"])
 
-    print("\n All models downloaded and verified")
+    print("All models downloaded and verified")
+
+    generate_version_yml()
+    print("Generated versions.yml")
 
 if __name__ == "__main__":
     main()
