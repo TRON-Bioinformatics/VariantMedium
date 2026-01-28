@@ -35,8 +35,9 @@ workflow PARSE_SAMPLESHEET {
     validateSamplesheet(ch_samplesheet)
     log.info "[INFO] Samplesheet validated"
 
+    def sep = ch_samplesheet_file.name.endsWith('.tsv') ? '\t' : ','
     ch_samplesheet
-        .splitCsv(header: true)
+        .splitCsv(header: true, sep: sep)
         .map { row ->
 
             def tumorPath = row.tumor_bam.trim()
@@ -49,6 +50,7 @@ workflow PARSE_SAMPLESHEET {
             tuple(row.sample_name, row.pair_identifier, tumorFile, normalFile)
         }
         .set { sample_info_ch }
+
     
     emit:
 
