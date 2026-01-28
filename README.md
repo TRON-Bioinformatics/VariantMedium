@@ -68,7 +68,7 @@ OPTIONAL ARGUMENTS:
 
 ```bash
 $ bash variantmedium.sh \
-  --samplehsheet <path/to/samplesheet.csv> \
+  --samplesheet <path/to/samplesheet.csv> \
   --outdir <path/to/pipeline-output-directory> \
   --profile conda  
 ```
