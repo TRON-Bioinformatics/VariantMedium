@@ -88,7 +88,7 @@ def main():
 
     print("[INFO] Downloading VCF files")
     for url in vcf_urls:
-        dest = ref_dir / os.path.basename(url)
+        dest = Path(os.path.join(ref_dir, os.path.basename(url)))
         download_file(url, dest)
 
     # -------------------------
@@ -101,7 +101,7 @@ def main():
 
     print("[INFO] Downloading reference genome files")
     for fname, url in genome_urls.items():
-        tar_dest = ref_dir / fname
+        tar_dest = Path(os.path.join(ref_dir, fname))
         download_file(url, tar_dest)
         extract_tar_gz(tar_dest, ref_dir)
 
@@ -109,7 +109,7 @@ def main():
     # Exome target region (.bb)
     # -------------------------
     bb_name = os.path.basename(bed_url.strip())
-    bb_dest = ref_dir / bb_name
+    bb_dest = Path(os.path.join(ref_dir, bb_name))
 
     print("[INFO] Downloading exome target region: {}".format(bed_url))
     download_file(bed_url, bb_dest)
@@ -122,14 +122,14 @@ def main():
     # -------------------------
     print("[INFO] Downloading bigBedToBed binary")
     bigbed_url = "https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigBedToBed"
-    bigbed_bin = ref_dir / "bigBedToBed"
+    bigbed_bin = Path(os.path.join(ref_dir, "bigBedToBed"))
     download_file(bigbed_url, bigbed_bin)
     bigbed_bin.chmod(0o755)
 
     # -------------------------
     # Convert .bb → .bed
     # -------------------------
-    bed_dest = ref_dir / bb_name.replace(".bb", ".bed")
+    bed_dest = Path(os.path.join(ref_dir, bb_name.replace(".bb", ".bed")))
 
     print("[INFO] Converting .bb to .bed")
     run([

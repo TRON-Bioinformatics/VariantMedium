@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import argparse
+import os
 from pathlib import Path
 import pandas as pd
 
@@ -37,12 +38,12 @@ def make_input(df, skip_preprocessing, output_dir):
     output_dir = Path(output_dir)
 
     cwd = Path.cwd()
-    prefile  = (cwd / "preproc.tsv").open("w")
-    bamfile  = (cwd / "bams.tsv").open("w")
-    vcffile  = (cwd / "vcfs.tsv").open("w")
-    paifile  = (cwd / "pairs_wo_reps.tsv").open("w")
-    b2tfile  = (cwd / "pairs_w_cands.tsv").open("w")
-    etrfile  = (cwd / "samples_w_cands.tsv").open("w")
+    prefile  = Path(os.path.join(cwd, "preproc.tsv")).open("w")
+    bamfile  = Path(os.path.join(cwd, "bams.tsv")).open("w")
+    vcffile  = Path(os.path.join(cwd, "vcfs.tsv")).open("w")
+    paifile  = Path(os.path.join(cwd, "pairs_wo_reps.tsv")).open("w")
+    b2tfile  = Path(os.path.join(cwd, "pairs_w_cands.tsv")).open("w")
+    etrfile  = Path(os.path.join(cwd, "samples_w_cands.tsv")).open("w")
 
     for _, row in df.iterrows():
         sample = row["sample_name"]
