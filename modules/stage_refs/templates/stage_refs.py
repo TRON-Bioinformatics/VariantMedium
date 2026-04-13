@@ -12,10 +12,7 @@ def run(cmd):
     print("[RUN] {}".format(" ".join(cmd)), flush=True)
 
     result = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
 
     if result.returncode != 0:
@@ -64,9 +61,9 @@ def compress_and_index_bed(bed_path):
 
 
 def generate_version_yml() -> None:
-        with open("versions.yml", "w") as yml:
-            yml.write("${task.process}\\n")
-            yml.write("stage_refs: ${params.version}\\n")
+    with open("versions.yml", "w") as yml:
+        yml.write("${task.process}\\n")
+        yml.write("stage_refs: ${params.version}\\n")
 
 
 def main():
@@ -132,11 +129,7 @@ def main():
     bed_dest = Path(os.path.join(ref_dir, bb_name.replace(".bb", ".bed")))
 
     print("[INFO] Converting .bb to .bed")
-    run([
-        str(bigbed_bin.resolve()),
-        str(bb_dest.resolve()),
-        str(bed_dest.resolve())
-    ])
+    run([str(bigbed_bin.resolve()), str(bb_dest.resolve()), str(bed_dest.resolve())])
 
     # -------------------------
     # Compress & index BED
