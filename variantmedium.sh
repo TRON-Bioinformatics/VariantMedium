@@ -103,6 +103,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+#---------------------------------------
+# Load config file if provided
+#---------------------------------------
 if [[ -n "$CONFIG_FILE" ]]; then
     [[ -f "$CONFIG_FILE" ]] || die "Config file not found: $CONFIG_FILE"
     log "Loading config: $CONFIG_FILE"
@@ -124,6 +127,9 @@ fi
 # Normalize OUTDIR
 OUTDIR="$(realpath -m "$OUTDIR")"
 
+#---------------------------------------
+# Derived paths
+#---------------------------------------
 TSV_FOLDER="${OUTDIR}/tsv_folder"
     REF_DIR="${OUTDIR}/data_staging/ref_data"
     MODELS_DIR="${OUTDIR}/data_staging/models"
@@ -178,8 +184,14 @@ log "  Request NF report        : $REQUEST_REPORT"
 log "  Request NF trace         : $REQUEST_TRACE"
 log "---------------------------------------------"
 
+#---------------------------------------
+# Resolve pipeline root directory (where this script lives)
+#---------------------------------------
 PIPELINE_DIR="$SCRIPT_DIR"
 
+#---------------------------------------
+# Prepare output directories
+#---------------------------------------
 mkdir -p "$OUTDIR"
 PIPE_LOG="${OUTDIR}/pipeline.log"
 : > "$PIPE_LOG"
@@ -207,6 +219,9 @@ CMD+=("${REPORT_ARGS[@]}")
 append_resume_args "$PIPELINE_STEP" CMD
 run_step "Generating TSV input files" "${CMD[@]}"
 
+#---------------------------------------
+# 2. Stage reference data & models
+#---------------------------------------
     PIPELINE_STEP="data_staging"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
@@ -215,34 +230,46 @@ CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" --samplesheet "${SAMPL
 append_resume_args "$PIPELINE_STEP" CMD
     run_step "Staging reference data and models" "${CMD[@]}"
 
+# Validate staged inputs required by downstream modules.
 [[ -d "$REF_DIR" ]] || die "Reference directory does not exist after data staging: $REF_DIR"
 [[ -d "$MODELS_DIR" ]] || die "Models directory does not exist after data staging: $MODELS_DIR"
 [[ -f "$REF" ]] || die "Reference FASTA missing: $REF"
-[[ -f "$EXOME_BED" ]] || die "Exome BED missing: $EXOME_BED"
-[[ -f "$DBSNP" ]] || die "dbSNP VCF missing: $DBSNP"
-[[ -f "$KNOWN_INDELS1" ]] || die "Known indels VCF missing: $KNOWN_INDELS1"
+if [[ ! -f "$EXOME_BED" ]]; then
+    log "WARNING: Exome BED missing: $EXOME_BED. Pipeline will run in WGS mode."
+fi
 [[ -f "${MODELS_DIR}/3ddensenet_snv.pt" ]] || die "SNV DenseNet model missing: ${MODELS_DIR}/3ddensenet_snv.pt"
 [[ -f "${MODELS_DIR}/3ddensenet_indel.pt" ]] || die "INDEL DenseNet model missing: ${MODELS_DIR}/3ddensenet_indel.pt"
 [[ -f "${MODELS_DIR}/extra_trees.snv.joblib" ]] || die "SNV ExtraTrees model missing: ${MODELS_DIR}/extra_trees.snv.joblib"
 [[ -f "${MODELS_DIR}/extra_trees.indel.joblib" ]] || die "INDEL ExtraTrees model missing: ${MODELS_DIR}/extra_trees.indel.joblib"
 
+#---------------------------------------
+# 3. BAM preprocessing
+#---------------------------------------
 if [[ "$SKIP_PREPROCESSING" == true ]]; then
     log "Skipping BAM preprocessing"
 else
     PIPELINE_STEP="bam_preprocessing"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
+    [[ -f "$DBSNP" ]] || die "dbSNP VCF missing: $DBSNP"
+    [[ -f "$KNOWN_INDELS1" ]] || die "Known indels VCF missing: $KNOWN_INDELS1"
+
+    BAM_INTERVALS_PARAM=()
+    if [[ -f "$EXOME_BED" ]]; then
+        BAM_INTERVALS_PARAM=(--intervals "$EXOME_BED")
+    else
+        log "WARNING: BAM preprocessing is running without intervals because Exome BED is unavailable."
+    fi
 
     CMD=(nextflow run tron-bioinformatics/tronflow-bam-preprocessing
-        -r v2.1.0
         -profile "${PROFILE}"
         --input_files "${TSV_FOLDER}/preproc.tsv"
         --reference "${REF}"
-        --intervals "${EXOME_BED}"
         --dbsnp "${DBSNP}"
         --known_indels1 "${KNOWN_INDELS1}"
         --output "${OUTDIR}/output_01_01_preprocessed_bams"
         --skip_prepare_bam
         --skip_metrics)
+    CMD+=("${BAM_INTERVALS_PARAM[@]}")
     CMD+=("${REPORT_ARGS[@]}")
 
     # add custom BAM preprocessing config if provided
@@ -251,6 +278,9 @@ else
     run_step "BAM preprocessing" "${CMD[@]}"
 fi
 
+#---------------------------------------
+# 4. Candidate calling (Strelka2)
+#---------------------------------------
     PIPELINE_STEP="candidate_calling"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
     # Handle intervals only if BED exists
@@ -273,6 +303,9 @@ append_resume_args "$PIPELINE_STEP" CMD
     [[ -n "$MOUNT_PATH" ]] && CMD+=("--mount_path" "$MOUNT_PATH")
     run_step "Candidate calling (Strelka2)" "${CMD[@]}"
 
+#---------------------------------------
+# 5. Feature generation
+#---------------------------------------
     PIPELINE_STEP="feature_generation"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
     CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
@@ -288,6 +321,9 @@ append_resume_args "$PIPELINE_STEP" CMD
 append_resume_args "$PIPELINE_STEP" CMD
     run_step "Feature generation" "${CMD[@]}"
 
+#---------------------------------------
+# 6. ExtraTrees candidate filtering
+#---------------------------------------
     PIPELINE_STEP="candidate_filtering"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
@@ -296,6 +332,9 @@ append_resume_args "$PIPELINE_STEP" CMD
     [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
     run_step "ExtraTrees candidate filtering" "${CMD[@]}"
 
+#---------------------------------------
+# 7. Tensor generation
+#---------------------------------------
     PIPELINE_STEP="tensor_generation"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
     CMD=(nextflow run tron-bioinformatics/bam2tensor
