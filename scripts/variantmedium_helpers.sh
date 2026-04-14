@@ -84,12 +84,22 @@ run_step() {
     fi
 
     if [[ "${cmd[0]}" == "nextflow" && -n "${PIPELINE_STEP:-}" ]]; then
-        session_id="$(grep -Eo 'Session UUID:\s+[0-9a-fA-F-]+' "$step_log" | awk '{print $3}' | tail -n1 || true)"
+        session_id="$(awk '
+            BEGIN { id = "" }
+            {
+                if (match($0, /[Ss]ession UUID:[[:space:]]*[0-9a-fA-F-]+/)) {
+                    s = substr($0, RSTART, RLENGTH)
+                    sub(/[Ss]ession UUID:[[:space:]]*/, "", s)
+                    id = s
+                }
+            }
+            END { print id }
+        ' "$step_log" || true)"
         if [[ -n "$session_id" ]]; then
             save_resume_token "$PIPELINE_STEP" "$session_id"
             log "Stored resume token for ${PIPELINE_STEP}: ${session_id}"
         else
-            log "Could not detect Session UUID for ${PIPELINE_STEP}; resume token not updated"
+            log "WARNING: Could not detect Session UUID for ${PIPELINE_STEP}; resume token was not updated (non-fatal)."
         fi
     fi
 
