@@ -261,6 +261,7 @@ else
     fi
 
     CMD=(nextflow run tron-bioinformatics/tronflow-bam-preprocessing
+        --r v2.2.2
         -profile "${PROFILE}"
         --input_files "${TSV_FOLDER}/preproc.tsv"
         --reference "${REF}"
@@ -292,7 +293,7 @@ fi
         --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv"
         --reference "${REF}"
         --output "${OUTDIR}/output_01_02_candidates_strelka2"
-        -r v0.2.4
+        -r v0.2.5
     )
     CMD+=("${REPORT_ARGS[@]}")
     # Include custom config only if provided
