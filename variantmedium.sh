@@ -310,7 +310,7 @@ append_resume_args "$PIPELINE_STEP" CMD
     PIPELINE_STEP="feature_generation"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
     CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
-        -r v3.1.2
+        -r v3.1.4
         -profile "${PROFILE}"
         --input_vcfs "${TSV_FOLDER}/vcfs.tsv"
         --input_bams "${TSV_FOLDER}/bams.tsv"
