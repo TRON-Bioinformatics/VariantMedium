@@ -287,6 +287,7 @@ CMD=(nextflow run tron-bioinformatics/VariantMedium
     --samplesheet "${SAMPLESHEET}"
     --outdir "${OUTDIR}"
     --execution_step "${PIPELINE_STEP}"
+    -work-dir "${OUTDIR}/nxfwork"
 )
 # add report/trace args if requested
 CMD+=("${REPORT_ARGS[@]}")
@@ -312,6 +313,7 @@ else
         --samplesheet "${SAMPLESHEET}"
         --outdir "${OUTDIR}"
         --execution_step "${PIPELINE_STEP}"
+        -work-dir "${OUTDIR}/nxfwork"
     )
     CMD+=("${REPORT_ARGS[@]}")
     [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
@@ -329,7 +331,7 @@ else
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 
     CMD=(nextflow run tron-bioinformatics/tronflow-bam-preprocessing
-        -r v2.1.0
+        -r v2.2.2
         -profile "${PROFILE}"
         --input_files "${TSV_FOLDER}/preproc.tsv"
         --reference "${REF}"
@@ -339,6 +341,7 @@ else
         --output "${OUTDIR}/output_01_01_preprocessed_bams"
         --skip_deduplication
         --skip_metrics
+        -work-dir "${OUTDIR}/nxfwork"
     )
     CMD+=("${REPORT_ARGS[@]}")
 
@@ -363,11 +366,12 @@ else
     [[ -f "$EXOME_BED" ]] && INTERVALS_PARAM=(--intervals "$EXOME_BED")
 
     CMD=(nextflow run tron-bioinformatics/tronflow-strelka2
+        -r v0.2.4
         -profile "${PROFILE}"
         --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv"
         --reference "${REF}"
         --output "${OUTDIR}/output_01_02_candidates_strelka2"
-        -r v0.2.4
+        -work-dir "${OUTDIR}/nxfwork"
     )
     CMD+=("${REPORT_ARGS[@]}")
 
@@ -394,12 +398,13 @@ else
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 
     CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
-        -r v3.1.2
+        -r v3.1.4
         -profile "${PROFILE}"
         --input_vcfs "${TSV_FOLDER}/vcfs.tsv"
         --input_bams "${TSV_FOLDER}/bams.tsv"
         --reference "${REF}"
         --output "${OUTDIR}/output_01_03_vcf_postprocessing"
+        -work-dir "${OUTDIR}/nxfwork"
     )
     CMD+=("${REPORT_ARGS[@]}")
 
@@ -425,6 +430,7 @@ else
         --samplesheet "${SAMPLESHEET}"
         --outdir "${OUTDIR}"
         --execution_step "${PIPELINE_STEP}"
+        -work-dir "${OUTDIR}/nxfwork"
     )
     CMD+=("${REPORT_ARGS[@]}")
     [[ -n "$RESUME" ]] && CMD+=("$RESUME")
@@ -452,6 +458,7 @@ else
         --read_length 50
         --max_mapq 60
         --max_baseq 82
+        -work-dir "${OUTDIR}/nxfwork"
     )
     CMD+=("${REPORT_ARGS[@]}")
 
@@ -474,6 +481,7 @@ CMD=(nextflow run tron-bioinformatics/VariantMedium
     --samplesheet "${SAMPLESHEET}"
     --outdir "${OUTDIR}"
     --execution_step "${PIPELINE_STEP}"
+    -work-dir "${OUTDIR}/nxfwork"
 )
 CMD+=("${REPORT_ARGS[@]}")
 [[ -n "$RESUME" ]] && CMD+=("$RESUME")
