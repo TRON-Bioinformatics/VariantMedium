@@ -38,6 +38,14 @@ workflow PARSE_SAMPLESHEET {
     ch_samplesheet  // channel ["path-to-samplesheet"]
 
     main:
+    
+    validateSamplesheet(ch_samplesheet)
+    log.info "[INFO] Samplesheet validated"
+
+    def sep = params.samplesheet.endsWith('.tsv') ? '\t' : ','
+    ch_samplesheet
+        .splitCsv(header: true, sep: sep)
+        .map { row ->
 
     // Validate samplesheet
     def validated_ch = validateSamplesheet(ch_samplesheet)
@@ -60,6 +68,10 @@ workflow PARSE_SAMPLESHEET {
         .flatten()
         .set { sample_info_ch }
 
+    
+    emit:
+
     emit:
     ch_samples = sample_info_ch
+
 }
