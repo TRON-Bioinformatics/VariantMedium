@@ -194,6 +194,6 @@ A manuscript describing the method will be available soon.
 
 - The source code is distributed under a [MIT license](LICENSE.sourcecode)
 - The parts of the source code that use torchvision are distributed
-  under [BSD 3-Clause License](LICENSE.torchvision)
-- The machine learning models in the folder `models` are distributed
+  under [BSD 3-Clause License](third_party/licences/LICENSE.torchvision)
+- Pretrained machine learning models are downloaded from Hugging Face and are distributed
   under [CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)

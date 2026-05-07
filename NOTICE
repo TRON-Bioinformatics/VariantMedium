@@ -1,0 +1,7 @@
+Third-party notices
+
+This repository contains code derived from torchvision components.
+
+- Derived file(s): `bin/src/models/densesomatic3d.py`
+- Upstream license: BSD 3-Clause
+- Full license text: `third_party/licences/LICENSE.torchvision`
