@@ -1,41 +1,28 @@
-from src.filter_candidates.constants import PCAWG  # noqa: F401
-from src.filter_candidates import constants_ml_snv, constants_ml_indel, extra_trees_functions, extra_trees_io  # noqa: F401
-from src.filter_candidates.candidate_filtering import filter_candidates as filter_variant_candidates
+from src.filter_candidates.candidate_filtering import (
+    filter_candidates as filter_variant_candidates,
+)
 import pandas as pd
 import argparse
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        prog='Extra trees filtering',
-        description='ML based filtering method to remove unlikely somatic variants',
+        prog="Extra trees filtering",
+        description="ML based filtering method to remove unlikely somatic variants",
     )
-    parser.add_argument('-i', '--input_files', type=str)
-    parser.add_argument('-o', '--output', type=str)
-    parser.add_argument('-m', '--model', type=str)
-    parser.add_argument('--snv', action="store_true")
-    parser.add_argument('--indel', action="store_true")
+    parser.add_argument("-i", "--input_files", type=str)
+    parser.add_argument("-o", "--output", type=str)
+    parser.add_argument("-m", "--model", type=str)
+    parser.add_argument("--snv", action="store_true")
+    parser.add_argument("--indel", action="store_true")
     args = parser.parse_args()
 
-    df = pd.read_csv(
-        args.input_files, sep='\t', header=None
-    )
+    df = pd.read_csv(args.input_files, sep="\t", header=None)
 
     if args.snv:
-        filter_variant_candidates(
-            df,
-            args.model,
-            args.output,
-            False
-        )
-    
+        filter_variant_candidates(df, args.model, args.output, False)
+
     if args.indel:
-        filter_variant_candidates(
-            df,
-            args.model,
-            args.output,
-            True
-    )
+        filter_variant_candidates(df, args.model, args.output, True)
 
     for sample in df[0].unique():
 
