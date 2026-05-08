@@ -133,8 +133,8 @@ OUTDIR="$(realpath -m "$OUTDIR")"
 # Derived paths
 #---------------------------------------
 TSV_FOLDER="${OUTDIR}/tsv_folder"
-    REF_DIR="${OUTDIR}/data_staging/ref_data"
-    MODELS_DIR="${OUTDIR}/data_staging/models"
+[[ -z "$REF_DIR" ]]    && REF_DIR="${OUTDIR}/data_staging/ref_data"
+[[ -z "$MODELS_DIR" ]] && MODELS_DIR="${OUTDIR}/data_staging/models"
 
 #---------------------------------------
 # Reference variables (update from config if provided)
