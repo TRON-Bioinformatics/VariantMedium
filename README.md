@@ -19,6 +19,53 @@ the name and pair_identifier as long as they make a unique tuple.
 | sample1     | 1               | /path/to/sample1_tumor.bam | /path/to/sample1_normal.bam |
 | sample2     | 1               | /path/to/sample2_tumor.bam | /path/to/sample2_normal.bam |
 
+- The pipeline launcher has 3 required arguments `--samplesheet`, `--outdir`, `--profile`
+
+```bash
+$ bash variantmedium.sh \
+  --samplesheet <path/to/samplesheet.csv> \
+  --outdir <path/to/pipeline-output-directory> \
+  --profile conda  
+```
+
+- If reference datasets and models are available locally, use the paths via the config file `(*.conf)`. `--skip-data-staging` is to be used to skip the data (models & references) download. Local paths should be passed through the config file in this case.
+
+```bash
+$ bash variantmedium.sh \
+  --samplesheet <path/to/samplesheet.csv> \
+  --outdir <path/to/pipeline-output-directory> \
+  --profile conda \
+  --skip-data-staging \
+  --config <run.conf>
+```
+
+- Similarly if pre-processed bams are available locally or pre-processing is not required, use the `--skip-preprocessing`. See the help message to skip subsequent steps if the need arises.
+
+```bash
+$ bash variantmedium.sh \
+  --samplesheet <path/to/samplesheet.csv> \
+  --outdir <path/to/pipeline-output-directory> \
+  --profile conda \
+  --skip-preprocesing \
+  --config <run.conf>
+```
+
+### Configuration Variables (`config.conf`)
+Define the following variables in `config.conf`(optional if using GRCh38, except for EXOME_BED):
+
+
+| Variable        | Description                                                                                       |
+|-----------------|---------------------------------------------------------------------------------------------------|
+| `REF_DIR`       | Directory for reference data                                                                      |
+| `MODELS_DIR`    | Directory for trained models                                                                      |
+| `KNOWN_INDELS1` | Common indel variant file for BAM preprocessing pipeline                                          |
+| `KNOWN_INDELS2` | Common indel variant file for BAM preprocessing pipeline (optional)                               |
+| `DBSNP`         | dbSNP VCF file for BAM preprocessing pipeline                                                     |
+| `REF`           | Reference genome                                                                                  |
+| `EXOME_BED`     | Target region definition as BED file (e.g., exome). Leave empty (`""`) if calling in WGS         |
+------------------------------------------------------------------------------------------------------------------------
+
+
 ### Command line pipeline launcher
 ```
 VariantMedium pipeline launcher
@@ -63,71 +110,6 @@ OPTIONAL ARGUMENTS:
 
 ```
 
-### Usage
-- The pipeline launcher has 3 required arguments `--samplesheet`, `--outdir`, `--profile`
-
-```bash
-$ bash variantmedium.sh \
-  --samplesheet <path/to/samplesheet.csv> \
-  --outdir <path/to/pipeline-output-directory> \
-  --profile conda  
-```
-
-- If reference datasets and models are available locally, use the paths via the config file `(*.conf)`. `--skip-data-staging` is to be used to skip the data (models & references) download. Local paths should be passed through the config file in this case.
-
-```bash
-$ bash variantmedium.sh \
-  --samplesheet <path/to/samplesheet.csv> \
-  --outdir <path/to/pipeline-output-directory> \
-  --profile conda \
-  --skip-data-staging \
-  --config <run.conf>
-```
-
-- Similarly if pre-processed bams are available locally or pre-processing is not required, use the `--skip-preprocessing`. See the help message to skip subsequent steps if the need arises.
-
-```bash
-$ bash variantmedium.sh \
-  --samplesheet <path/to/samplesheet.csv> \
-  --outdir <path/to/pipeline-output-directory> \
-  --profile conda \
-  --skip-preprocesing \
-  --config <run.conf>
-```
-
-- The pipeline can be resumed from the previous failed step with the `--resume` option.
-
-```bash
-$ bash variantmedium.sh \
-  --samplehsheet <path/to/samplesheet.csv> \
-  --outdir <path/to/pipeline-output-directory> \
-  --profile conda \
-  --resume
-```
-
-- Pipeline reports and trace files can be generated with the `--nf-report` and `--nf-trace` options.
-```bash
-$ bash variantmedium.sh \
-  --samplehsheet <path/to/samplesheet.csv> \
-  --outdir <path/to/pipeline-output-directory> \
-  --profile conda \
-  --nf-report \
-  --nf-trace \
-```
-
-Define the following variables in `config.conf`(optional):
-### Optional Configuration Variables (`config.conf`)
-
-| Variable        | Description                                                                                       |
-|-----------------|---------------------------------------------------------------------------------------------------|
-| `REF_DIR`       | Directory for reference data                                                                      |
-| `MODELS_DIR`    | Directory for trained models                                                                      |
-| `KNOWN_INDELS1` | Common indel variant file for BAM preprocessing pipeline                                          |
-| `KNOWN_INDELS2` | Common indel variant file for BAM preprocessing pipeline (optional)                               |
-| `DBSNP`         | dbSNP VCF file for BAM preprocessing pipeline                                                     |
-| `REF`           | Reference genome                                                                                  |
-| `EXOME_BED`     | Target region definition as BED file (e.g., exome). Leave empty (`""`) if calling in WGS         |
-------------------------------------------------------------------------------------------------------------------------
 
 ### Slurm Execution
 To run the pipeline on a slurm executor an example script would look something as below, although this would change as per the organization's HPC infrastructure setup.
@@ -137,12 +119,11 @@ To run the pipeline on a slurm executor an example script would look something a
 #SBATCH --job-name=<job-name>
 #SBATCH --output=logs/%x_%j.out
 #SBATCH --error=logs/%x_%j.err
-#SBATCH --time=48:00:00
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=4
 #SBATCH --nodes=<nodes>
 #SBATCH --nodelist=<nodelist>
 #SBATCH --partition=<gpu-partition-name>
-#SBATCH --mem=128G
+#SBATCH --mem=16G
 #SBATCH --gpus=1
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=<user-email>
@@ -162,6 +143,13 @@ bash variantmedium.sh \
 
 echo "[INFO] Job finished at: $(date)"
 ```
+
+#### GPU and SLURM Notes
+
+The pipeline supports both GPU and CPU execution. Device selection is automatic:
+- **GPU systems**: If CUDA is available, the code defaults to `cuda:0`. With SLURM, ensure your job directive includes `#SBATCH --gpus=N` (where N is the number of GPUs needed). SLURM automatically sets `CUDA_VISIBLE_DEVICES` to map your allocated GPUs, so `cuda:0` will correctly reference the first GPU assigned to your job.
+- **CPU-only systems**: If no CUDA-capable GPU is detected, the pipeline automatically falls back to CPU execution with no code changes required.
+- **Multi-GPU systems**: The pipeline distributes data loading across multiple workers (4 workers by default) with GPU or CPU tensors depending on availability. For optimal performance on GPU, ensure your SLURM allocation matches your job requirements.
 
 **Please make sure the index for the BAM file exists with the ".bai" extension under the same
 directory, e.g. for bams/tumor.bam you have bams/tumor.bai. Also please make sure that the tumor and
