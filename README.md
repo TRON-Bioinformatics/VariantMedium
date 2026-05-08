@@ -28,6 +28,16 @@ $ bash variantmedium.sh \
   --profile conda  
 ```
 
+- When running with WES samples, please include `--intervals` to a sorted, bgzipped, and indexed BED file.
+
+```bash
+$ bash variantmedium.sh \
+  --samplesheet <path/to/samplesheet.csv> \
+  --outdir <path/to/pipeline-output-directory> \
+  --intervals <path/to/sorted/bgzipped/indexed/bed>
+  --profile conda  
+```
+
 - If reference datasets and models are available locally, use the paths via the config file `(*.conf)`. `--skip-data-staging` is to be used to skip the data (models & references) download. Local paths should be passed through the config file in this case.
 
 ```bash
@@ -51,7 +61,7 @@ $ bash variantmedium.sh \
 ```
 
 ### Configuration Variables (`config.conf`)
-Define the following variables in `config.conf`(optional if using GRCh38, except for EXOME_BED):
+Define the following variables in `config.conf`. These are set to GRCh38 references by default, but are required if you are using another reference:
 
 
 | Variable        | Description                                                                                       |
@@ -62,7 +72,6 @@ Define the following variables in `config.conf`(optional if using GRCh38, except
 | `KNOWN_INDELS2` | Common indel variant file for BAM preprocessing pipeline (optional)                               |
 | `DBSNP`         | dbSNP VCF file for BAM preprocessing pipeline                                                     |
 | `REF`           | Reference genome                                                                                  |
-| `EXOME_BED`     | Target region definition as BED file (e.g., exome). Leave empty (`""`) if calling in WGS         |
 ------------------------------------------------------------------------------------------------------------------------
 
 

@@ -49,7 +49,7 @@ else
   -resume \
   --input_files ${TSV_FOLDER}/preproc.tsv  \
   --reference ${REF} \
-  --intervals ${EXOME_BED} \
+  --intervals ${INTERVALS} \
   --dbsnp ${DBSNP} \
   --known_indels1 ${KNOWN_INDELS1} \
   --output ${OUT_FOLDER}/output_01_01_preprocessed_bams \
@@ -62,11 +62,11 @@ fi
 echo "Running Strelka2 to get candidate VCFs"
 cd ${OUT_FOLDER}/output_01_02_candidates_strelka2
 
-if [[ "${EXOME_BED}" == "" ]]
+if [[ "${INTERVALS}" == "" ]]
 then
   INTERVALS_PARAM=""
 else
-  INTERVALS_PARAM="--intervals ${EXOME_BED} "
+  INTERVALS_PARAM="--intervals ${INTERVALS} "
 fi
 
 nextflow run tron-bioinformatics/tronflow-strelka2 \
