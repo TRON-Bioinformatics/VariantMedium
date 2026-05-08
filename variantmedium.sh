@@ -211,7 +211,7 @@ mkdir -p \
 #---------------------------------------
 PIPELINE_STEP="generate_tsv_files"
 readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
-CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
+CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" -work-dir "${OUTDIR}/work/${PIPELINE_STEP}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
 CMD+=("${REPORT_ARGS[@]}")
 [[ "$SKIP_PREPROCESSING" == true ]] && CMD+=(--skip_preprocessing)
 [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
@@ -223,7 +223,7 @@ run_step "Generating TSV input files" "${CMD[@]}"
 #---------------------------------------
     PIPELINE_STEP="data_staging"
     readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
-CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
+CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" -work-dir "${OUTDIR}/work/${PIPELINE_STEP}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
     CMD+=("${REPORT_ARGS[@]}")
     [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
 [[ "$RESUME_REQUESTED" == true ]] && CMD+=(-resume)
@@ -262,6 +262,7 @@ else
     CMD=(nextflow run tron-bioinformatics/tronflow-bam-preprocessing
         --r v2.2.2
         -profile "${PROFILE}"
+        -work-dir "${OUTDIR}/work/${PIPELINE_STEP}"
         --input_files "${TSV_FOLDER}/preproc.tsv"
         --reference "${REF}"
         --dbsnp "${DBSNP}"
@@ -289,6 +290,7 @@ INTERVALS_PARAM=()
 
 CMD=(nextflow run tron-bioinformatics/tronflow-strelka2
     -profile "${PROFILE}"
+    -work-dir "${OUTDIR}/work/${PIPELINE_STEP}"
     --input_files "${TSV_FOLDER}/pairs_wo_reps.tsv"
     --reference "${REF}"
     --output "${OUTDIR}/output_01_02_candidates_strelka2"
@@ -311,6 +313,7 @@ readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 CMD=(nextflow run tron-bioinformatics/tronflow-vcf-postprocessing
     -r v3.1.4
     -profile "${PROFILE}"
+    -work-dir "${OUTDIR}/work/${PIPELINE_STEP}"
     --input_vcfs "${TSV_FOLDER}/vcfs.tsv"
     --input_bams "${TSV_FOLDER}/bams.tsv"
     --reference "${REF}"
@@ -326,7 +329,7 @@ CMD+=("${REPORT_ARGS[@]}")
 #---------------------------------------
 PIPELINE_STEP="candidate_filtering"
 readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
-CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
+CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" -work-dir "${OUTDIR}/work/${PIPELINE_STEP}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
 CMD+=("${REPORT_ARGS[@]}")
 [[ "$RESUME_REQUESTED" == true ]] && CMD+=(-resume)
 [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "${MOUNT_PATH}")
@@ -340,6 +343,7 @@ readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
 CMD=(nextflow run tron-bioinformatics/bam2tensor
     -r 1.0.2
     -profile "${PROFILE}"
+    -work-dir "${OUTDIR}/work/${PIPELINE_STEP}"
     --input_files "${TSV_FOLDER}/pairs_w_cands.tsv"
     --publish_dir "${OUTDIR}/output_01_05_tensors"
     --reference "${REF}"
@@ -359,7 +363,7 @@ run_step "Tensor generation" "${CMD[@]}"
 #---------------------------------------
 PIPELINE_STEP="variant_calling"
 readarray -t REPORT_ARGS < <(generate_nf_report "$PIPELINE_STEP")
-CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
+CMD=(nextflow run "${PIPELINE_DIR}" -profile "${PROFILE}" -work-dir "${OUTDIR}/work/${PIPELINE_STEP}" --samplesheet "${SAMPLESHEET}" --outdir "${OUTDIR}" --execution_step "${PIPELINE_STEP}")
 CMD+=("${REPORT_ARGS[@]}")
 [[ "$RESUME_REQUESTED" == true ]] && CMD+=(-resume)
 [[ -n "$MOUNT_PATH" ]] && CMD+=(--mount_path "$MOUNT_PATH")
