@@ -22,7 +22,7 @@ process PREPARE_INPUTS {
     """
     mkdir -p tsv_folder/
     
-    python prepare_input_files.py \
+    python ${projectDir}/bin/prepare_input_files.py \
         -i "${input_file}" \
         -o "${output_path}" \
         -s "${skip_preprocessing}" \
