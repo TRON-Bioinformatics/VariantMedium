@@ -22,7 +22,7 @@ process CALL_VARIANTS {
     def args = task.ext.args ?: ''
 
     """
-    python run_variantmedium.py call \\
+    python src/variantmedium.py call \\
         --home_folder "${home_folder}" \\
         --unknown_strategy_call keep_as_false \\
         --pretrained_model "${pretrained_model}" \\

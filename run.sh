@@ -131,7 +131,7 @@ echo "Activating variantmedium environment"
 source ${CONDA_ACT} ${ENV_FOLDER}/variantmedium
 echo "Activated variantmedium environment"
 echo "Running 3D DenseNets to make final SNV calls"
-python -u ${CODE_FOLDER}/src/run.py call \
+python -u ${CODE_FOLDER}/src/variantmedium.py call \
 --home_folder ${OUT_FOLDER}/output_01_05_tensors/ \
 --unknown_strategy_call keep_as_false \
 --pretrained_model ${CODE_FOLDER}/models/3ddensenet_snv.pt \
@@ -146,7 +146,7 @@ python -u ${CODE_FOLDER}/src/run.py call \
 echo "Final SNV calls made"
 
 echo "Running 3D DenseNets to make final INDEL calls"
-python -u ${CODE_FOLDER}/src/run.py call \
+python -u ${CODE_FOLDER}/src/variantmedium.py call \
 --home_folder ${OUT_FOLDER}/output_01_05_tensors/ \
 --prediction_mode somatic_indel \
 --out_path ${OUT_FOLDER}/output_01_06_calls_densenet \
