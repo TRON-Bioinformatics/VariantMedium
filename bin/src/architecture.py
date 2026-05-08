@@ -15,12 +15,12 @@ np.random.seed(6746549)
 
 
 def select_architecture(hp):
-    """ Select an architecture and initialize a model with it.
+    """Select an architecture and initialize a model with it.
 
     :param hp: Hyperparameters
     :return: A model initialized with selected architecture.
     """
-    if hp.architecture == 'DenseSomatic3D':
+    if hp.architecture == "DenseSomatic3D":
         # remove ref and pos hyperparams.channels, separate by ref, tum, nor
         return densesomatic3d(
             init_features=hp.num_init_features,
@@ -31,9 +31,9 @@ def select_architecture(hp):
             drop_rate=hp.drop_rate,
         )
     else:
-        raise Exception('Selected architecture {} is not supported'.format(
-            hp.architecture
-        ))
+        raise Exception(
+            "Selected architecture {} is not supported".format(hp.architecture)
+        )
 
 
 def initialize_network(hp, network_path: Text = None):
@@ -46,21 +46,17 @@ def initialize_network(hp, network_path: Text = None):
     start_time = time.time()
     network = select_architecture(hp)
     if network_path:
-        logger.info('Loading pretrained network {}'.format(network_path))
-        if torch.cuda.is_available():
-            network.load_state_dict(torch.load(network_path), strict=False)
-        else:
-            network.load_state_dict(
-                torch.load(network_path, map_location=torch.device('cpu')),
-                strict=False
-            )
+        logger.info("Loading pretrained network {}".format(network_path))
+        map_location = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        network.load_state_dict(
+            torch.load(network_path, map_location=map_location, weights_only=True),
+            strict=False,
+        )
 
         new_state_dict = OrderedDict()
         for k, v in network.state_dict().items():
-            name = k.replace('module.', '')
+            name = k.replace("module.", "")
             new_state_dict[name] = v
         network.load_state_dict(new_state_dict)
-    logger.info('Initialized network in {} seconds'.format(
-        time.time() - start_time
-    ))
+    logger.info("Initialized network in {} seconds".format(time.time() - start_time))
     return network

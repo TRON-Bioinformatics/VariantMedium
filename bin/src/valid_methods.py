@@ -21,10 +21,10 @@ np.random.seed(6746549)
 
 
 def validate_network(
-        loader: MutationDataLoader,
-        hp,
-        network_path: str = None,
-        network: nn.Module = None,
+    loader: MutationDataLoader,
+    hp,
+    network_path: str = None,
+    network: nn.Module = None,
 ):
     """Validate the performance using an independent data set.
 
@@ -40,7 +40,7 @@ def validate_network(
     """
     if not network_path and not network:
         raise Exception(
-            'Both network and network network_path are empty. You need to input one of them.'
+            "Both network and network network_path are empty. You need to input one of them."
         )
     if network_path:
         network = initialize_network(hp, network_path)
@@ -61,12 +61,9 @@ def validate_network(
     # if loader.dataset.for_final_validation:
     #     aug_rate = hp.aug_rate
     arr_len = len(loader.get_data_loader().dataset.data_list)
-    if torch.cuda.is_available():
-        scores_arr = torch.zeros(arr_len, 3, dtype=torch.float16).cuda()
-        labels_arr = torch.zeros(arr_len, dtype=torch.int8).cuda()
-    else:
-        scores_arr = torch.zeros(arr_len, 3, dtype=torch.float)
-        labels_arr = torch.zeros(arr_len, dtype=torch.int8)
+    compute_dtype = torch.float16 if device.type == "cuda" else torch.float32
+    scores_arr = torch.zeros(arr_len, 3, dtype=compute_dtype).to(device)
+    labels_arr = torch.zeros(arr_len, dtype=torch.int8).to(device)
     metadata_arr = np.ndarray([arr_len, 7], dtype=object)
 
     with torch.no_grad():
@@ -75,7 +72,7 @@ def validate_network(
         #     loader.dataset.val_clip_length = a
         for i, data in enumerate(loader.get_data_loader()):
             network.eval()
-            inputs, labels, metadata = data['X'], data['y1'], data['metadata']
+            inputs, labels, metadata = data["X"], data["y1"], data["metadata"]
             inputs = inputs.to(device, dtype=torch.float, non_blocking=True)
             scores, _ = network(inputs)
 
@@ -85,16 +82,9 @@ def validate_network(
             for ind in range(7):
                 metadata_arr[start:end, ind] = metadata[ind]
             start = end
-        if torch.cuda.is_available():
-            scores_arr = F.softmax(scores_arr.cuda(), dim=1)
-        else:
-            scores_arr = F.softmax(scores_arr, dim=1)
+        scores_arr = F.softmax(scores_arr, dim=1)
 
-    nn_scores, auprc = sum_up(
-        hp,
-        scores_arr.cpu().numpy(),
-        labels_arr.cpu().numpy()
-    )
+    nn_scores, auprc = sum_up(hp, scores_arr.cpu().numpy(), labels_arr.cpu().numpy())
     return nn_scores, metadata_arr, auprc
 
 
@@ -104,17 +94,17 @@ def extend_metadata(all_metadata: Dict[Text, List], metadata: Tuple[List]):
     :param all_metadata: The main metadata dictionary.
     :param metadata: The new metadata tuple.
     """
-    all_metadata['chr'].extend(metadata[0])
-    all_metadata['pos'].extend(metadata[1])
-    all_metadata['ref'].extend(metadata[2])
-    all_metadata['alt'].extend(metadata[3])
-    all_metadata['sample'].extend(metadata[4])
-    all_metadata['replicate'].extend(metadata[5])
-    all_metadata['clipping'].extend(metadata[6])
+    all_metadata["chr"].extend(metadata[0])
+    all_metadata["pos"].extend(metadata[1])
+    all_metadata["ref"].extend(metadata[2])
+    all_metadata["alt"].extend(metadata[3])
+    all_metadata["sample"].extend(metadata[4])
+    all_metadata["replicate"].extend(metadata[5])
+    all_metadata["clipping"].extend(metadata[6])
 
 
 def sum_up(hp, scores, labels):
-    """ Sum up validation by computing the AUPRC/AUROC scores and printing them.
+    """Sum up validation by computing the AUPRC/AUROC scores and printing them.
 
     :param hp: Hyperparameters.
     :param scores: Scores assigned to each variant by the network.
@@ -123,14 +113,18 @@ def sum_up(hp, scores, labels):
     """
     # get auprc
     auprc_all, auroc_all, nn_scores = compute_binary_performance(
-        labels, scores, hp.prediction_mode,
+        labels,
+        scores,
+        hp.prediction_mode,
     )
 
     print_performance(
-        labels, scores, auprc_all, auroc_all,
+        labels,
+        scores,
+        auprc_all,
+        auroc_all,
     )
 
-    scores = np.append(scores, np.reshape(nn_scores, [nn_scores.shape[0], 1]),
-                       axis=1)
+    scores = np.append(scores, np.reshape(nn_scores, [nn_scores.shape[0], 1]), axis=1)
 
     return scores, auprc_all
