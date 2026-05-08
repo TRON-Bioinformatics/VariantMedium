@@ -16,7 +16,13 @@ process STAGE_REFERENCES {
     task.ext.when == null || task.ext.when
 
     script:
-    template("stage_refs.py")
+    """
+    python ${moduleDir}/templates/stage_refs.py \\
+        --bed_url "${bed_url}" \\
+        --ref_outdir "${ref_outdir}" \\
+        --task_process "${task.process}" \\
+        --version "${params.version}"
+    """
 
     stub:
     """

@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+import fire
 import hashlib
 import os
 import requests
@@ -38,10 +37,10 @@ def verify_checksum(file_path: Path, expected_md5: str):
     print(" Checksum Verified: {}".format(file_path.name))
 
 
-def generate_version_yml() -> None:
+def generate_version_yml(task_process: str, version: str) -> None:
     with open("versions.yml", "w") as yml:
-        yml.write("${task.process}\\n")
-        yml.write("stage_models: ${params.version}\\n")
+        yml.write("{}\n".format(task_process))
+        yml.write("stage_models: {}\n".format(version))
 
 
 def download_and_verify(f, output_dir):
@@ -66,8 +65,7 @@ def download_and_verify(f, output_dir):
     return f["filename"]
 
 
-def main():
-
+def main(models_dir: str, task_process: str, version: str):
     files = [
         {
             "url": "https://huggingface.co/tron-mainz/3ddensenet_snv/resolve/main/3ddensenet_snv.pt",
@@ -91,7 +89,7 @@ def main():
         },
     ]
 
-    output_dir = Path("./models")
+    output_dir = Path(models_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     print("Downloading models to {}".format(output_dir.resolve()))
 
@@ -105,9 +103,9 @@ def main():
 
     print("All models downloaded and verified")
 
-    generate_version_yml()
+    generate_version_yml(task_process, version)
     print("Generated versions.yml")
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)

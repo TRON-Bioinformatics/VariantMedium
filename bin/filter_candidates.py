@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from src.filter_candidates.constants import PCAWG  # noqa: F401
 from src.filter_candidates import constants_ml_snv, constants_ml_indel, extra_trees_functions, extra_trees_io  # noqa: F401
 from src.filter_candidates.candidate_filtering import filter_candidates as filter_variant_candidates

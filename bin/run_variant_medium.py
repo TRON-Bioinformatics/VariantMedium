@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import fire
 from src.run import Hyperparams
 

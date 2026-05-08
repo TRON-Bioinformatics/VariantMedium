@@ -24,7 +24,7 @@ process FILTER_CANDIDATES {
     """
     mkdir -p filtered_candidates/
     
-    filter_candidates.py \\
+    python filter_candidates.py \\
         -i "${input_tsv}" \\
         -o "${output_dir}" \\
         -m "${model}" \\

@@ -18,7 +18,12 @@ process STAGE_MODELS {
     task.ext.when == null || task.ext.when
 
     script:
-    template("stage_models.py")
+    """
+    python ${moduleDir}/templates/stage_models.py \\
+        --models_dir "${models_dir}" \\
+        --task_process "${task.process}" \\
+        --version "${params.version}"
+    """
 
     stub:
     """
