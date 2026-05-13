@@ -1,0 +1,45 @@
+{
+  "title": "VariantMedium - Somatic variant calling from matched tumor-normal paired short-read sequencing data using 3D DenseNets",
+  "upload_type": "software",
+  "description": "<p>VariantMedium is a deep learning-based somatic variant caller for matched tumor-normal short-read sequencing data. It integrates machine learning–based filtering and 3D convolutional neural networks to classify candidate sites as somatic, germline, or non-variant, with high sensitivity and robustness across diverse genomic contexts and sample types. </p><p>The source code is distributed under a MIT license. The parts of the source code that use torchvision are distributed under BSD 3-Clause License.</p>",
+  "creators": [
+    {
+      "name": "Muslu, Özlem",
+      "affiliation": "TRON gGmbH, Germany",
+      "orcid": "0000-0003-0408-6190"
+    },
+    {
+      "name": "Kher, Sameesh",
+      "affiliation": "TRON gGmbH, Germany",
+      "orcid": "0009-0008-2420-6464"
+    },
+    {
+      "name": "Kress, Luis",
+      "affiliation": "TRON gGmbH, Germany",
+      "orcid": "0009-0000-6440-3114"
+    },
+    {
+      "name": "Akbarinejad, Shaya",
+      "affiliation": "TRON gGmbH, Germany",
+      "orcid": "0009-0000-3920-6901"
+    },
+    {
+      "name": "Löwer, Martin",
+      "affiliation": "TRON gGmbH, Germany",
+    },
+    {
+      "name": "Ibn-Salem, Jonas",
+      "affiliation": "TRON gGmbH, Germany",
+      "orcid": "0000-0001-9886-113X"
+    }
+  ],
+  "license": "other-open",
+  "keywords": [
+    "python",
+    "nextflow",
+    "bash-script",
+    "workflow-pipeline",
+    "dual-license"
+  ],
+  "language": "eng"
+}
