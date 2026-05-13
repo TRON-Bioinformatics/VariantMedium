@@ -2,7 +2,6 @@ process CALL_VARIANTS {
     label "process_medium"
 
     conda "${moduleDir}/environment.yml"
-    container "https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/a7/a73b7de4a8d00029f69b6cef20b74e1a1d6b48c1d7d5a65b5e55cf09c3fe6ce7/data"
 
     input:
     path(home_folder)
