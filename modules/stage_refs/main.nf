@@ -2,7 +2,6 @@ process STAGE_REFERENCES {
     label 'process_single'
 
     conda "${moduleDir}/environment.yml"
-    container "https://community-cr-prod..io/docker/registry/v2/blobs/sha256/b7/b77f6190e0770242d259d2982968ec82d3fb244d1e7f207c13bcf85d44b468e1/data"
 
     input:
     val(bed_url)
