@@ -4,9 +4,9 @@ VariantMedium is a deep learning-based somatic variant caller for matched tumor-
 
 ### Pre-requisites to the VariantMedium Pipeline
 
-- nextflow >= 24.10.3 (install run environment with `conda env create -f envs/run.yml`)
-- conda >= 4.4 (miniconda >=23.11.0 recommended)
-- CUDA 11.4 (optional for GPU support)
+- nextflow >= 25.10.4 (install run environment with `conda env create -f envs/run.yml`)
+- conda >= 26.1.1 (miniconda >=23.11.0 recommended)
+- CUDA 13.2 (optional for GPU support)
 
 ## Usage
 
