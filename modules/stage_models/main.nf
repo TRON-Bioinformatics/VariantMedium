@@ -1,5 +1,5 @@
 process STAGE_MODELS {
-    label 'process_medium'
+    label 'process_low'
 
     conda "${moduleDir}/environment.yml"
     container "https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/b7/b77f6190e0770242d259d2982968ec82d3fb244d1e7f207c13bcf85d44b468e1/data"
@@ -18,7 +18,12 @@ process STAGE_MODELS {
     task.ext.when == null || task.ext.when
 
     script:
-    template("stage_models.py")
+    """
+    python ${moduleDir}/templates/stage_models.py \\
+        --models_dir "${models_dir}" \\
+        --task_process "${task.process}" \\
+        --version "${params.version}"
+    """
 
     stub:
     """

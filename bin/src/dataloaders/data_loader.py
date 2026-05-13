@@ -22,15 +22,15 @@ class MutationDataset(Dataset):
     """Mutation dataset."""
 
     def __init__(
-            self,
-            data_paths: Dict[Text, Dict[Text, Text]],
-            for_training: bool,
-            unknown_strategy: Text,
-            aug_rate: int = 0,
-            aug_mixes: List = None,
-            prediction_mode: Text = False,
+        self,
+        data_paths: Dict[Text, Dict[Text, Text]],
+        for_training: bool,
+        unknown_strategy: Text,
+        aug_rate: int = 0,
+        aug_mixes: List = None,
+        prediction_mode: Text = False,
     ):
-        """ Initializer for mutation data set.
+        """Initializer for mutation data set.
 
         :param in_homes: Home directories for pt files that contain one tensor.
         :param ground_truth_paths: Paths to the labels files.
@@ -54,9 +54,7 @@ class MutationDataset(Dataset):
         self.index_mappings = defaultdict(list)
 
         self.data_list = self._generate_data_list(
-            data_paths,
-            unknown_strategy,
-            aug_mixes
+            data_paths, unknown_strategy, aug_mixes
         )
 
         self._print_info(aug_mixes)
@@ -68,17 +66,16 @@ class MutationDataset(Dataset):
 
         end = time.time()
         logger.info(
-            'Data is now in memory. Loading took {} minutes'.format(
-                (end - start) / 60)
+            "Data is now in memory. Loading took {} minutes".format((end - start) / 60)
         )
 
     def _generate_data_list(
-            self,
-            data_paths: Dict[Text, Dict[Text, Text]],
-            unknown_strategy: Text,
-            aug_mixes: List = None,
+        self,
+        data_paths: Dict[Text, Dict[Text, Text]],
+        unknown_strategy: Text,
+        aug_mixes: List = None,
     ):
-        """ Fill in the list that encapsulates training/validation set.
+        """Fill in the list that encapsulates training/validation set.
 
         :param in_homes: Home directories for pt files that contain one tensor.
         :param ground_truth_paths: Paths to the labels files.
@@ -90,14 +87,10 @@ class MutationDataset(Dataset):
         """
         all_data_list = []
         for sample, paths in data_paths.items():
-            logger.info('Processing files in: {}'.format(paths['tensors']))
+            logger.info("Processing files in: {}".format(paths["tensors"]))
 
             df_merge = get_merged_df(
-                paths,
-                self.prediction_mode,
-                self.for_train,
-                aug_mixes,
-                unknown_strategy
+                paths, self.prediction_mode, self.for_train, aug_mixes, unknown_strategy
             )
             if df_merge is None:
                 continue
@@ -113,44 +106,42 @@ class MutationDataset(Dataset):
         :param aug_mixes: Augmentation mix for purity/downsampling augmentation.
         """
 
-        logger.info('Number of tensors: {}'.format(len(self.data_list)))
+        logger.info("Number of tensors: {}".format(len(self.data_list)))
         for key in self.index_mappings.keys():
-            logger.info(
-                'Number of {}s: {}'.format(key, len(self.index_mappings[key]))
-            )
+            logger.info("Number of {}s: {}".format(key, len(self.index_mappings[key])))
         if self.for_train:
-            logger.info('Augmentation mixes used: {}'.format(aug_mixes))
+            logger.info("Augmentation mixes used: {}".format(aug_mixes))
 
     def _update_class_indices(self, new_indices, offset):
-        """ Add the class information for each index in the data_list
+        """Add the class information for each index in the data_list
 
         :param new_indices: The indices matching the AnnotatedTensor in data_list
         :param offset: Start index to add the indices to
         """
         for key in new_indices.keys():
-            self.index_mappings[key].extend(
-                [ind + offset for ind in new_indices[key]]
-            )
+            self.index_mappings[key].extend([ind + offset for ind in new_indices[key]])
 
     def mix_for_balance(self):
         """When training, use balanced data when available"""
         if self.prediction_mode in GERMLINE_MODES:
-            num_instances = len(self.index_mappings['GERMLINE'])
+            num_instances = len(self.index_mappings["GERMLINE"])
         elif self.prediction_mode in SOMATIC_MODES:
-            num_instances = len(self.index_mappings['SOMATIC'])
+            num_instances = len(self.index_mappings["SOMATIC"])
         else:
             raise Exception(
-                'Prediction mode {} is not recognized'.format(
-                    self.prediction_mode
-                )
+                "Prediction mode {} is not recognized".format(self.prediction_mode)
             )
         indices = []
         for key in self.index_mappings.keys():
             if len(self.index_mappings[key]) > 0:
-                indices.extend(list(np.random.choice(
-                    self.index_mappings[key],
-                    size=min(num_instances, len(self.index_mappings[key]))
-                )))
+                indices.extend(
+                    list(
+                        np.random.choice(
+                            self.index_mappings[key],
+                            size=min(num_instances, len(self.index_mappings[key])),
+                        )
+                    )
+                )
                 random.shuffle(indices)
                 # TODO: convert to np style
                 self.balanced_data_list = [self.data_list[i] for i in indices]
@@ -178,26 +169,26 @@ class MutationDataset(Dataset):
          also metadata (key: 'metadata') for evaluation.
         """
         if self.for_train:
-            arr = torch.load(self.balanced_data_list[idx].tensor)
+            arr = torch.load(self.balanced_data_list[idx].tensor, weights_only=True)
             clip_length = self.balanced_data_list[idx].clip_length
             if clip_length > 0:
                 arr = clip_array(arr, arr.shape[3], self.aug_rate, clip_length)
             return {
-                'X': arr,
-                'y1': self.balanced_data_list[idx].mutation_type,
-                'y2': self.balanced_data_list[idx].mutation_length_type
+                "X": arr,
+                "y1": self.balanced_data_list[idx].mutation_type,
+                "y2": self.balanced_data_list[idx].mutation_length_type,
             }
         else:
-            arr = torch.load(self.data_list[idx].tensor)
+            arr = torch.load(self.data_list[idx].tensor, weights_only=True)
             clip_length = self.data_list[idx].clip_length
             if clip_length > 0:
                 arr = clip_array(arr, arr.shape[3], self.aug_rate, clip_length)
             d = self.data_list[idx]
             return {
-                'X': arr,
-                'y1': d.mutation_type,
-                'y2': d.mutation_length_type,
-                'metadata': d.metadata
+                "X": arr,
+                "y1": d.mutation_type,
+                "y2": d.mutation_length_type,
+                "metadata": d.metadata,
             }
 
 
@@ -205,7 +196,7 @@ class MutationDataLoader:
     """Class that encapsulates a torch.utils.data.DataLoader object."""
 
     def __init__(self, hp, for_training: bool = False):
-        """ Initializer for data loader object.
+        """Initializer for data loader object.
 
         Takes a list of home directories of the input .pt files, a list of
         matching label files, candidate files, a batch size, and whether it is
@@ -251,12 +242,7 @@ class MutationDataLoader:
             self.dataset,
             batch_size=self.batch_size,
             num_workers=8,
-            pin_memory=True,
-            generator=g
+            pin_memory=torch.cuda.is_available(),
+            generator=g,
         )
         return data_loader
-
-    def seed_worker(worker_id):
-        worker_seed = torch.initial_seed() % 2 ** 32
-        np.random.seed(worker_seed)
-        random.seed(worker_seed)

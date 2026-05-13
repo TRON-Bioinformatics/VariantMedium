@@ -298,3 +298,7 @@ class Hyperparams:
             self.unknown_strategy_val,
             self.pretrained_model
         )
+
+
+if __name__ == "__main__":
+    fire.Fire(Hyperparams)

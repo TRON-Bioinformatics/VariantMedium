@@ -1,20 +1,25 @@
-#!/usr/bin/env python
-
+import fire
 import hashlib
+import os
 import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
+
 def download_file(url: str, dest: Path):
-    """Download file from a URL with retries."""
+    """Stream-download file from a URL with retries."""
     for attempt in range(5):
         try:
-            response = requests.get(url, timeout=60)
-            response.raise_for_status()
-            dest.write_bytes(response.content)
+            with requests.get(url, timeout=60, stream=True) as response:
+                response.raise_for_status()
+                with dest.open("wb") as f:
+                    for chunk in response.iter_content(chunk_size=1024 * 1024):
+                        f.write(chunk)
             return
         except requests.RequestException as e:
-            print("Attempt {}/5 failed: {}".format(attempt+1, e))
+            print("Attempt {}/5 failed: {}".format(attempt + 1, e))
     raise RuntimeError("Failed to download {} after 5 attempts".format(url))
+
 
 def verify_checksum(file_path: Path, expected_md5: str):
     """Verify file MD5 checksum."""
@@ -24,16 +29,43 @@ def verify_checksum(file_path: Path, expected_md5: str):
             md5.update(chunk)
     actual_md5 = md5.hexdigest()
     if actual_md5 != expected_md5:
-        raise ValueError("Checksum mismatch for {} Expected: {} Actual:   {}".format(file_path.name, expected_md5, actual_md5))
+        raise ValueError(
+            "Checksum mismatch for {} Expected: {} Actual:   {}".format(
+                file_path.name, expected_md5, actual_md5
+            )
+        )
     print(" Checksum Verified: {}".format(file_path.name))
 
-def generate_version_yml() -> None:
+
+def generate_version_yml(task_process: str, version: str) -> None:
     with open("versions.yml", "w") as yml:
-        yml.write("${task.process}\\n")
-        yml.write("stage_models: ${params.version}\\n")
+        yml.write("{}\n".format(task_process))
+        yml.write("stage_models: {}\n".format(version))
 
-def main():
 
+def download_and_verify(f, output_dir):
+    """Download a single file and verify its checksum. Returns filename."""
+    dest = Path(os.path.join(output_dir, f["filename"]))
+    if dest.exists():
+        print("Already exists, verifying checksum: {}".format(f["filename"]))
+        try:
+            verify_checksum(dest, f["checksum"])
+            print("Skipping download: {}".format(f["filename"]))
+            return f["filename"]
+        except ValueError:
+            print(
+                "Checksum mismatch for existing file, re-downloading: {}".format(
+                    f["filename"]
+                )
+            )
+
+    print("Downloading {} ...".format(f["filename"]))
+    download_file(f["url"], dest)
+    verify_checksum(dest, f["checksum"])
+    return f["filename"]
+
+
+def main(models_dir: str, task_process: str, version: str):
     files = [
         {
             "url": "https://huggingface.co/tron-mainz/3ddensenet_snv/resolve/main/3ddensenet_snv.pt",
@@ -57,21 +89,23 @@ def main():
         },
     ]
 
-    output_dir = Path("./models")
+    output_dir = Path(models_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     print("Downloading models to {}".format(output_dir.resolve()))
 
-    for f in files:
-        
-        dest = output_dir / f["filename"]
-        print("Downloading {} ...".format(f["filename"]))
-        download_file(f["url"], dest)
-        verify_checksum(dest, f["checksum"])
+    with ThreadPoolExecutor(max_workers=len(files)) as executor:
+        futures = {
+            executor.submit(download_and_verify, f, output_dir): f["filename"]
+            for f in files
+        }
+        for future in as_completed(futures):
+            future.result()  # re-raises any exception from the worker
 
     print("All models downloaded and verified")
 
-    generate_version_yml()
+    generate_version_yml(task_process, version)
     print("Generated versions.yml")
 
+
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)

@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-
+import fire
 import os
 import subprocess
 import tarfile
@@ -12,10 +11,7 @@ def run(cmd):
     print("[RUN] {}".format(" ".join(cmd)), flush=True)
 
     result = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
     )
 
     if result.returncode != 0:
@@ -63,16 +59,13 @@ def compress_and_index_bed(bed_path):
     run(["tabix", "-p", "bed", str(bed_gz.resolve())])
 
 
-def generate_version_yml() -> None:
-        with open("versions.yml", "w") as yml:
-            yml.write("${task.process}\\n")
-            yml.write("stage_refs: ${params.version}\\n")
+def generate_version_yml(task_process: str, version: str) -> None:
+    with open("versions.yml", "w") as yml:
+        yml.write("{}\n".format(task_process))
+        yml.write("stage_refs: {}\n".format(version))
 
 
-def main():
-    bed_url = "${bed_url}"
-    ref_outdir = "${ref_outdir}"
-
+def main(bed_url: str, ref_outdir: str, task_process: str, version: str):
     ref_dir = Path(ref_outdir).resolve()
     ref_dir.mkdir(parents=True, exist_ok=True)
 
@@ -82,13 +75,15 @@ def main():
     # Reference VCF files
     # -------------------------
     vcf_urls = [
-        "ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/technical/reference/GRCh38_reference_genome/other_mapping_resources/ALL.wgs.1000G_phase3.GRCh38.ncbi_remapper.20150424.shapeit2_indels.vcf.gz",
-        "ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/dbsnp_146.hg38.vcf.gz"
+        "ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz",
+        "ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/Mills_and_1000G_gold_standard.indels.hg38.vcf.gz.tbi",
+        "ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/dbsnp_146.hg38.vcf.gz",
+        "ftp://gsapubftp-anonymous@ftp.broadinstitute.org/bundle/hg38/dbsnp_146.hg38.vcf.gz.tbi",
     ]
 
     print("[INFO] Downloading VCF files")
     for url in vcf_urls:
-        dest = ref_dir / os.path.basename(url)
+        dest = Path(os.path.join(ref_dir, os.path.basename(url)))
         download_file(url, dest)
 
     # -------------------------
@@ -101,7 +96,7 @@ def main():
 
     print("[INFO] Downloading reference genome files")
     for fname, url in genome_urls.items():
-        tar_dest = ref_dir / fname
+        tar_dest = Path(os.path.join(ref_dir, fname))
         download_file(url, tar_dest)
         extract_tar_gz(tar_dest, ref_dir)
 
@@ -109,7 +104,7 @@ def main():
     # Exome target region (.bb)
     # -------------------------
     bb_name = os.path.basename(bed_url.strip())
-    bb_dest = ref_dir / bb_name
+    bb_dest = Path(os.path.join(ref_dir, bb_name))
 
     print("[INFO] Downloading exome target region: {}".format(bed_url))
     download_file(bed_url, bb_dest)
@@ -122,21 +117,17 @@ def main():
     # -------------------------
     print("[INFO] Downloading bigBedToBed binary")
     bigbed_url = "https://hgdownload.soe.ucsc.edu/admin/exe/linux.x86_64/bigBedToBed"
-    bigbed_bin = ref_dir / "bigBedToBed"
+    bigbed_bin = Path(os.path.join(ref_dir, "bigBedToBed"))
     download_file(bigbed_url, bigbed_bin)
     bigbed_bin.chmod(0o755)
 
     # -------------------------
     # Convert .bb → .bed
     # -------------------------
-    bed_dest = ref_dir / bb_name.replace(".bb", ".bed")
+    bed_dest = Path(os.path.join(ref_dir, bb_name.replace(".bb", ".bed")))
 
     print("[INFO] Converting .bb to .bed")
-    run([
-        str(bigbed_bin.resolve()),
-        str(bb_dest.resolve()),
-        str(bed_dest.resolve())
-    ])
+    run([str(bigbed_bin.resolve()), str(bb_dest.resolve()), str(bed_dest.resolve())])
 
     # -------------------------
     # Compress & index BED
@@ -150,8 +141,8 @@ def main():
     # versions.yml
     # -------------------------
     print("[INFO] Generating versions.yml")
-    generate_version_yml()
+    generate_version_yml(task_process, version)
 
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)

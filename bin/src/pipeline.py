@@ -34,7 +34,7 @@ def pipeline(hp, call: bool = False):
     valid_loader = MutationDataLoader(hp)
     if hp.epoch > 0:
         train_loader = MutationDataLoader(hp=hp, for_training=True)
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         network = initialize_network(hp, network_path=hp.pretrained_model)
         # criterions for mutation class, and mutation length class.
@@ -43,9 +43,7 @@ def pipeline(hp, call: bool = False):
         )
         criterion2 = nn.CrossEntropyLoss()
         # optimizer
-        optimizer = optim.SGD(
-            network.parameters(), lr=hp.learning_rate, momentum=0.9
-        )
+        optimizer = optim.SGD(network.parameters(), lr=hp.learning_rate, momentum=0.9)
         scheduler = torch.optim.lr_scheduler.CyclicLR(
             optimizer, base_lr=hp.learning_rate, max_lr=hp.learning_rate
         )
@@ -66,22 +64,17 @@ def pipeline(hp, call: bool = False):
         del network
     else:
         BEST_MODEL_FNAME = hp.pretrained_model
-    torch.cuda.empty_cache()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     valid_loader.dataset.for_final_validation = True
     scores_valid, metadata_valid, _ = validate_network(
         valid_loader, hp, BEST_MODEL_FNAME
     )
     save_scores(
-        scores_valid,
-        metadata_valid,
-        hp.out_path,
-        hp.prediction_mode,
-        call_mode=call
+        scores_valid, metadata_valid, hp.out_path, hp.prediction_mode, call_mode=call
     )
 
     if writer:
         writer.close()
 
-    logger.info('Program finished in {} minutes'.format(
-        (time.time() - start) / 60
-    ))
+    logger.info("Program finished in {} minutes".format((time.time() - start) / 60))
