@@ -2,7 +2,6 @@ process PREPARE_INPUTS {
     label 'process_low'
 
     conda "${moduleDir}/environment.yml"
-    container "https://community-cr-prod.seqera.io/docker/registry/v2/blobs/sha256/e8/e87c143b4e7b31e1d5db5518d5c3d0e82fe20c4a9607e668e3fc8b390257d4f7/data"
 
     input:
     path(input_file)
