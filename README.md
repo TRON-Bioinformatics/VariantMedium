@@ -179,13 +179,15 @@ We listed the solutions to common errors we encountered when running this pipeli
 ## Training data
 
 We share the cell-line sequencing data and orthogonal deep sequencing confirmation of variants under
-controlled access. The data is avaliable
-under [European Genome-Phenome Archive (EGA)](https://ega-archive.org/studies/EGAS00001007633)
-with accession number `EGAS00001007633`
+controlled access. The data is available
+under [European Genome-Phenome Archive (EGA)](https://ega-archive.org/studies/EGAS50000001661)
+with accession number `EGAS50000001661`
 
 ## Citation
 
-A manuscript describing the method will be available soon.
+When using this tool, please cite:
+
+Muslu Ö, Bukur T, Riesgo-Ferreiro P, Kher S, Akbarinejad S, Kress L, Gangi Maurici S, Asim MN, Henrich A, Ahmed S, Dengel A, Löwer M, Ibn-Salem J, Sahin U. VariantMedium: sensitive and generalizable somatic point mutation calling with 3D DenseNets trained and evaluated on experimental data. Genome Med. 2026 Jun 19;18(1):89. doi: [10.1186/s13073-026-01675-1](https://doi.org/10.1186/s13073-026-01675-1). PMID: 42316276; PMCID: PMC13285312.
 
 ## License
 
