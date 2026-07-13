@@ -185,7 +185,9 @@ with accession number `EGAS00001007633`
 
 ## Citation
 
-A manuscript describing the method will be available soon.
+When using this tool, please cite:
+
+Muslu Ö, Bukur T, Riesgo-Ferreiro P, Kher S, Akbarinejad S, Kress L, Gangi Maurici S, Asim MN, Henrich A, Ahmed S, Dengel A, Löwer M, Ibn-Salem J, Sahin U. VariantMedium: sensitive and generalizable somatic point mutation calling with 3D DenseNets trained and evaluated on experimental data. Genome Med. 2026 Jun 19;18(1):89. doi: [10.1186/s13073-026-01675-1](10.1186/s13073-026-01675-1). PMID: 42316276; PMCID: PMC13285312.
 
 ## License
 
