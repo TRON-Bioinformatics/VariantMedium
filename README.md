@@ -179,7 +179,7 @@ We listed the solutions to common errors we encountered when running this pipeli
 ## Training data
 
 We share the cell-line sequencing data and orthogonal deep sequencing confirmation of variants under
-controlled access. The data is avaliable
+controlled access. The data is available
 under [European Genome-Phenome Archive (EGA)](https://ega-archive.org/studies/EGAS50000001661)
 with accession number `EGAS50000001661`
 
